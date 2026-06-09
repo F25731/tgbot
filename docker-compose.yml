@@ -1,0 +1,11 @@
+services:
+  guangya-search-bot:
+    build: .
+    container_name: guangya-search-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    volumes:
+      - ./data:/app/data
