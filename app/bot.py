@@ -201,26 +201,46 @@ class TelegramSearchBot:
 
     def _page_nav_row(self, session: SearchSession) -> list[InlineKeyboardButton]:
         current = session.current_page
-        visible: list[int | None]
-        if current <= PAGE_WINDOW:
-            visible = list(range(1, PAGE_WINDOW + 1))
-            if not session.exhausted:
-                visible.append(None)
+        if current <= 3:
+            page_numbers = list(range(1, PAGE_WINDOW + 1))
+        elif current == PAGE_WINDOW:
+            page_numbers = list(range(1, PAGE_WINDOW + 2))
         else:
-            visible = [1, None, current - 1, current, current + 1, current + 2]
-            if not session.exhausted:
+            page_numbers = [1]
+            page_numbers.extend(range(current - 2, current + 3))
+
+        last_page = max(session.pages) if session.pages else current
+        if session.exhausted:
+            page_numbers = [page_no for page_no in page_numbers if page_no <= last_page]
+
+        visible: list[int | None] = []
+        previous: int | None = None
+        for page_no in sorted(set(page_numbers)):
+            if page_no < 1:
+                continue
+            if previous is not None and page_no - previous > 1:
                 visible.append(None)
-            elif session.pages:
-                last_page = max(session.pages)
-                if last_page not in visible:
-                    visible.extend([None, last_page])
+            visible.append(page_no)
+            previous = page_no
+
+        if not session.exhausted:
+            visible.append(None)
+        elif last_page not in visible and last_page > 0:
+            if visible and last_page - int(visible[-1]) > 1:
+                visible.append(None)
+            visible.append(last_page)
 
         buttons: list[InlineKeyboardButton] = []
         for idx, page_no in enumerate(visible):
             if page_no is None:
                 if not buttons or buttons[-1].text == "…":
                     continue
-                jump_to = current + PAGE_JUMP if idx > len(visible) // 2 else max(1, current - PAGE_JUMP)
+                if idx == len(visible) - 1:
+                    jump_to = current + 1
+                elif idx > len(visible) // 2:
+                    jump_to = current + PAGE_JUMP
+                else:
+                    jump_to = max(1, current - PAGE_JUMP)
                 buttons.append(InlineKeyboardButton("…", callback_data=f"{CALLBACK_JUMP_PREFIX}{jump_to}"))
                 continue
             label = f"{page_no}~" if page_no == current else str(page_no)
