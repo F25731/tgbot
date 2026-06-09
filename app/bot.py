@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import BadRequest
 from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
@@ -45,6 +46,7 @@ class SearchSession:
     pages: dict[int, SearchPage] = field(default_factory=dict)
     current_page: int = 1
     exhausted: bool = False
+    list_message_id: int | None = None
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -233,6 +235,56 @@ class TelegramSearchBot:
         rows.append(self._page_nav_row(session))
         return InlineKeyboardMarkup(rows)
 
+    async def _render_page(
+        self,
+        chat_id: int,
+        session: SearchSession,
+        bot,
+        *,
+        message_id: int | None = None,
+    ) -> None:
+        page = session.pages.get(session.current_page)
+        if not page:
+            await bot.send_message(chat_id=chat_id, text="列表已过期，请重新搜索")
+            return
+        if not page.items:
+            await bot.send_message(chat_id=chat_id, text=f"没有找到关键词「{session.keyword}」的结果")
+            return
+
+        text = self._page_summary(session, page)
+        reply_markup = InlineKeyboardMarkup(self._page_item_markup(session, page))
+        if message_id is None:
+            sent = await bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+            session.list_message_id = sent.message_id
+            return
+
+        try:
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+        except BadRequest as exc:
+            if "message is not modified" in str(exc).lower():
+                return
+            sent = await bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+            session.list_message_id = sent.message_id
+
     def _format_detail(self, item: dict[str, Any]) -> str:
         lines = [
             f"<b>名称：</b>{html.escape(str(item.get('name') or '-'))}",
@@ -308,20 +360,7 @@ class TelegramSearchBot:
         return session.pages.get(target_page)
 
     async def _send_page(self, chat_id: int, session: SearchSession, bot) -> None:
-        page = session.pages.get(session.current_page)
-        if not page:
-            await bot.send_message(chat_id=chat_id, text="列表已过期，请重新搜索")
-            return
-        if not page.items:
-            await bot.send_message(chat_id=chat_id, text=f"没有找到关键词「{session.keyword}」的结果")
-            return
-        await bot.send_message(
-            chat_id=chat_id,
-            text=self._page_summary(session, page),
-            reply_markup=InlineKeyboardMarkup(self._page_item_markup(session, page)),
-            parse_mode="HTML",
-            disable_web_page_preview=True,
-        )
+        await self._render_page(chat_id, session, bot)
 
     async def _start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.effective_message:
@@ -385,7 +424,12 @@ class TelegramSearchBot:
                     await query.answer("列表已过期，请重新搜索", show_alert=False)
                     return
                 await query.answer("返回列表", show_alert=False)
-                await self._send_page(chat_id, session, context.bot)
+                await self._render_page(
+                    chat_id,
+                    session,
+                    context.bot,
+                    message_id=session.list_message_id,
+                )
                 return
 
             if payload.startswith(CALLBACK_DETAIL_PREFIX):
@@ -416,7 +460,12 @@ class TelegramSearchBot:
                     return
                 session.current_page = target_page
                 session.updated_at = datetime.now(timezone.utc)
-                await self._send_page(chat_id, session, context.bot)
+                await self._render_page(
+                    chat_id,
+                    session,
+                    context.bot,
+                    message_id=session.list_message_id,
+                )
                 return
 
             if payload.startswith(CALLBACK_JUMP_PREFIX):
@@ -431,7 +480,12 @@ class TelegramSearchBot:
                     return
                 session.current_page = target_page
                 session.updated_at = datetime.now(timezone.utc)
-                await self._send_page(chat_id, session, context.bot)
+                await self._render_page(
+                    chat_id,
+                    session,
+                    context.bot,
+                    message_id=session.list_message_id,
+                )
                 return
 
             await query.answer("无效按钮", show_alert=False)
