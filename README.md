@@ -9,11 +9,48 @@
 - 搜索结果只以按钮显示资源名称
 - 点击资源名称发送详情和链接
 - 点击“下一页”继续翻页
+- 后台网页配置 Telegram Bot Token
+- 后台网页配置光鸭 API 地址和 API Key
 - 后台网页配置每页显示数量
 - 后台网页配置最多显示数量，`0` 表示不限
 - Docker Compose 一键启动
 
-## API 依赖
+## 部署
+
+```bash
+git clone https://github.com/F25731/tgbot.git
+cd tgbot
+cp .env.example .env
+nano .env
+docker compose up -d --build
+```
+
+`.env` 只需要先设置后台网页端口和登录账号：
+
+```env
+WEB_PORT=8080
+WEB_USERNAME=admin
+WEB_PASSWORD=change-me
+```
+
+后台网页：
+
+```text
+http://服务器IP:8080
+```
+
+登录后台后再配置：
+
+- Telegram Bot Token
+- 光鸭 API 地址
+- 光鸭 API Key
+- 每页显示数量
+- 最多显示数量，`0` 表示不限
+- 状态过滤
+
+保存后点击“启动 Bot”或“重启 Bot”。
+
+## 光鸭 API
 
 服务调用现有接口：
 
@@ -27,24 +64,10 @@
 X-API-Key: 你的 search:read API Key
 ```
 
-## 本地启动
-
-```bash
-cp .env.example .env
-docker compose up -d --build
-```
-
-后台网页：
+如果本项目和光鸭后端在同一台 Docker 宿主机，但不在同一个 compose 网络里，可以在后台把 API 地址填成：
 
 ```text
-http://服务器IP:8080
-```
-
-默认账号密码来自 `.env`：
-
-```text
-WEB_USERNAME=admin
-WEB_PASSWORD=change-me
+http://host.docker.internal:你的后端端口
 ```
 
 ## 重要注意
@@ -56,14 +79,12 @@ WEB_PASSWORD=change-me
 - AstrBot 继续用推送机器人 token
 - 本项目单独使用检索机器人 token
 
-## 配置项
+## 更新
 
-- `TELEGRAM_BOT_TOKEN`：检索机器人的 Telegram token
-- `GUANGYA_API_BASE`：现有光鸭资源系统后端地址
-- `GUANGYA_API_KEY`：具备 `search:read` 权限的 API Key
-- `PAGE_SIZE`：每页显示数量，范围 1-50
-- `MAX_RESULTS`：最多显示数量，`0` 表示不限
-- `SEARCH_STATUS`：可选状态过滤，留空为全部
-- `WEB_PORT`：后台网页端口
+```bash
+cd /root/tgbot
+git pull
+docker compose up -d --build
+```
 
-运行后也可以在后台网页修改配置。配置会保存到 `data/config.json`。
+配置会保存到 `data/config.json`，不会被 git 更新覆盖。
