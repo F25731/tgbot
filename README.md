@@ -11,6 +11,7 @@
 - 点击“下一页”继续翻页
 - 后台网页配置 Telegram Bot Token
 - 后台网页配置光鸭 API 地址和 API Key
+- 后台网页配置 Telegram 代理，支持 HTTP 和 SOCKS5
 - 后台网页配置每页显示数量
 - 后台网页配置最多显示数量，`0` 表示不限
 - Docker Compose 一键启动
@@ -47,8 +48,23 @@ http://服务器IP:8080
 - 每页显示数量
 - 最多显示数量，`0` 表示不限
 - 状态过滤
+- Telegram 代理
 
 保存后点击“启动 Bot”或“重启 Bot”。
+
+代理示例：
+
+```text
+http://用户名:密码@IP:端口
+socks5://用户名:密码@IP:端口
+socks5h://用户名:密码@IP:端口
+```
+
+你给的这种 HTTP 代理可以直接填：
+
+```text
+http://thEo7YdSslcy:Z4ZZXbs32oiB@70.39.141.247:6819
+```
 
 ## 光鸭 API
 

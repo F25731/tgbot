@@ -31,6 +31,8 @@ class RuntimeConfig:
     status: str = ""
     request_timeout_seconds: int = 20
     bot_enabled: bool = True
+    proxy_enabled: bool = False
+    proxy_url: str = ""
     web_username: str = "admin"
     web_password: str = "admin123"
 
@@ -40,14 +42,19 @@ class RuntimeConfig:
         self.max_results = max(0, int(self.max_results or 0))
         self.request_timeout_seconds = max(3, int(self.request_timeout_seconds or 20))
         self.status = (self.status or "").strip()
+        self.proxy_url = (self.proxy_url or "").strip()
+        if self.proxy_url.startswith("socks://"):
+            self.proxy_url = "socks5://" + self.proxy_url.removeprefix("socks://")
         return self
 
     def public_dict(self) -> dict[str, Any]:
         data = asdict(self.normalized())
         data["telegram_bot_token_set"] = bool(self.telegram_bot_token)
         data["guangya_api_key_set"] = bool(self.guangya_api_key)
+        data["proxy_url_set"] = bool(self.proxy_url)
         data.pop("telegram_bot_token", None)
         data.pop("guangya_api_key", None)
+        data.pop("proxy_url", None)
         data.pop("web_password", None)
         return data
 
@@ -68,6 +75,8 @@ class ConfigStore:
             status=os.getenv("SEARCH_STATUS", ""),
             request_timeout_seconds=_int_env("REQUEST_TIMEOUT_SECONDS", 20),
             bot_enabled=_bool_env("BOT_ENABLED", True),
+            proxy_enabled=_bool_env("PROXY_ENABLED", False),
+            proxy_url=os.getenv("PROXY_URL", ""),
             web_username=os.getenv("WEB_USERNAME", "admin"),
             web_password=os.getenv("WEB_PASSWORD", "admin123"),
         ).normalized()

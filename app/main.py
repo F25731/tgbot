@@ -41,6 +41,8 @@ class ConfigPayload(BaseModel):
     status: str | None = Field(default=None, max_length=32)
     request_timeout_seconds: int | None = Field(default=None, ge=3, le=120)
     bot_enabled: bool | None = Field(default=None)
+    proxy_enabled: bool | None = Field(default=None)
+    proxy_url: str | None = Field(default=None, max_length=512)
     web_username: str | None = Field(default=None, min_length=1, max_length=64)
     web_password: str | None = Field(default=None, min_length=1, max_length=128)
 
@@ -73,10 +75,15 @@ async def get_config(_: str = Depends(require_admin)):
 
 @app.put("/api/config")
 async def update_config(payload: ConfigPayload, _: str = Depends(require_admin)):
-    old_token = store.get().telegram_bot_token
+    old_config = store.get()
     config = store.update(payload.clean())
-    token_changed = old_token != config.telegram_bot_token
-    if token_changed and bot.running():
+    should_restart = (
+        old_config.telegram_bot_token != config.telegram_bot_token
+        or old_config.proxy_enabled != config.proxy_enabled
+        or old_config.proxy_url != config.proxy_url
+        or old_config.request_timeout_seconds != config.request_timeout_seconds
+    )
+    if should_restart and bot.running():
         await bot.restart()
     data = config.public_dict()
     data["bot_running"] = bot.running()

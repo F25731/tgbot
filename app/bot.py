@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -78,8 +79,28 @@ class TelegramSearchBot:
         await self.stop()
         return self.start_background()
 
+    def _telegram_request(self, config: RuntimeConfig) -> HTTPXRequest:
+        kwargs: dict[str, Any] = {
+            "connect_timeout": float(config.request_timeout_seconds),
+            "read_timeout": float(config.request_timeout_seconds),
+            "write_timeout": float(config.request_timeout_seconds),
+            "pool_timeout": float(config.request_timeout_seconds),
+        }
+        if config.proxy_enabled and config.proxy_url:
+            kwargs["proxy"] = config.proxy_url
+        return HTTPXRequest(**kwargs)
+
     async def _run(self, token: str) -> None:
-        application = Application.builder().token(token).build()
+        config = self._config()
+        request = self._telegram_request(config)
+        get_updates_request = self._telegram_request(config)
+        application = (
+            Application.builder()
+            .token(token)
+            .request(request)
+            .get_updates_request(get_updates_request)
+            .build()
+        )
         application.add_handler(CommandHandler("start", self._start_command))
         application.add_handler(CommandHandler("gy", self._search_command))
         application.add_handler(CommandHandler("status", self._status_command))

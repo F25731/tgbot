@@ -209,6 +209,14 @@
             Bot 启用
             <input id="bot_enabled" name="bot_enabled" type="checkbox" />
           </label>
+          <label class="switch">
+            Telegram 代理启用
+            <input id="proxy_enabled" name="proxy_enabled" type="checkbox" />
+          </label>
+          <label>
+            Telegram 代理地址
+            <input id="proxy_url" name="proxy_url" autocomplete="off" placeholder="留空表示不修改，支持 http:// 和 socks5://" />
+          </label>
           <div class="row">
             <label>
               后台用户名
@@ -233,6 +241,7 @@
           <div><span>Bot</span><strong id="bot_running">-</strong></div>
           <div><span>Telegram Token</span><strong id="telegram_bot_token_set">-</strong></div>
           <div><span>API Key</span><strong id="guangya_api_key_set">-</strong></div>
+          <div><span>代理</span><strong id="proxy_label">-</strong></div>
           <div><span>光鸭 API</span><strong id="guangya_api_ok">-</strong></div>
           <div><span>每页</span><strong id="page_size_label">-</strong></div>
           <div><span>最多</span><strong id="max_results_label">-</strong></div>
@@ -249,6 +258,7 @@
         "status",
         "request_timeout_seconds",
         "bot_enabled",
+        "proxy_enabled",
         "web_username",
       ];
 
@@ -280,10 +290,14 @@
         }
         document.getElementById("telegram_bot_token").value = "";
         document.getElementById("guangya_api_key").value = "";
+        document.getElementById("proxy_url").value = "";
         document.getElementById("web_password").value = "";
         document.getElementById("bot_running").textContent = data.bot_running ? "运行中" : "未运行";
         document.getElementById("telegram_bot_token_set").textContent = yesNo(data.telegram_bot_token_set);
         document.getElementById("guangya_api_key_set").textContent = yesNo(data.guangya_api_key_set);
+        document.getElementById("proxy_label").textContent = data.proxy_enabled
+          ? (data.proxy_url_set ? "已启用" : "已启用但未配置")
+          : "关闭";
         document.getElementById("page_size_label").textContent = data.page_size;
         document.getElementById("max_results_label").textContent = data.max_results === 0 ? "不限" : data.max_results;
       }
@@ -306,7 +320,7 @@
           if (!el.name) continue;
           if (el.type === "checkbox") body[el.name] = el.checked;
           else if (["page_size", "max_results", "request_timeout_seconds"].includes(el.name)) body[el.name] = Number(el.value);
-          else if (["telegram_bot_token", "guangya_api_key", "web_password"].includes(el.name)) {
+          else if (["telegram_bot_token", "guangya_api_key", "proxy_url", "web_password"].includes(el.name)) {
             if (el.value !== "") body[el.name] = el.value;
           } else body[el.name] = el.value;
         }
