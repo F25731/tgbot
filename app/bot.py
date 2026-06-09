@@ -27,8 +27,8 @@ CALLBACK_DETAIL_PREFIX = "gy:d:"
 CALLBACK_PAGE_PREFIX = "gy:p:"
 CALLBACK_JUMP_PREFIX = "gy:j:"
 CALLBACK_BACK = "gy:b"
-PAGE_WINDOW = 2
-PAGE_JUMP = 5
+PAGE_WINDOW = 4
+PAGE_JUMP = 4
 
 
 @dataclass
@@ -199,35 +199,31 @@ class TelegramSearchBot:
 
     def _page_nav_row(self, session: SearchSession) -> list[InlineKeyboardButton]:
         current = session.current_page
-        pages = {current}
-        for page_no in range(max(1, current - PAGE_WINDOW), current + PAGE_WINDOW + 1):
-            pages.add(page_no)
-        pages.add(1)
-        if session.exhausted and session.pages:
-            pages.add(max(session.pages))
+        visible: list[int | None]
+        if current <= PAGE_WINDOW:
+            visible = list(range(1, PAGE_WINDOW + 1))
+            if not session.exhausted:
+                visible.append(None)
+        else:
+            visible = [1, None, current - 1, current, current + 1, current + 2]
+            if not session.exhausted:
+                visible.append(None)
+            elif session.pages:
+                last_page = max(session.pages)
+                if last_page not in visible:
+                    visible.extend([None, last_page])
 
-        sorted_pages = sorted(p for p in pages if p >= 1)
         buttons: list[InlineKeyboardButton] = []
-        prev_page: int | None = None
-        for page_no in sorted_pages:
-            if prev_page is not None and page_no - prev_page > 1:
-                jump_to = max(1, current - PAGE_JUMP) if page_no <= current else current + PAGE_JUMP
-                buttons.append(
-                    InlineKeyboardButton("…", callback_data=f"{CALLBACK_JUMP_PREFIX}{jump_to}")
-                )
-            label = f"{page_no}✓" if page_no == current else str(page_no)
-            buttons.append(
-                InlineKeyboardButton(label, callback_data=f"{CALLBACK_PAGE_PREFIX}{page_no}")
-            )
-            prev_page = page_no
+        for idx, page_no in enumerate(visible):
+            if page_no is None:
+                if not buttons or buttons[-1].text == "…":
+                    continue
+                jump_to = current + PAGE_JUMP if idx > len(visible) // 2 else max(1, current - PAGE_JUMP)
+                buttons.append(InlineKeyboardButton("…", callback_data=f"{CALLBACK_JUMP_PREFIX}{jump_to}"))
+                continue
+            label = f"{page_no}~" if page_no == current else str(page_no)
+            buttons.append(InlineKeyboardButton(label, callback_data=f"{CALLBACK_PAGE_PREFIX}{page_no}"))
 
-        if not session.exhausted:
-            buttons.append(
-                InlineKeyboardButton(
-                    "…",
-                    callback_data=f"{CALLBACK_JUMP_PREFIX}{current + PAGE_JUMP}",
-                )
-            )
         return buttons
 
     def _detail_markup(self, session: SearchSession | None) -> InlineKeyboardMarkup | None:
