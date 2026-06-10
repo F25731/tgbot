@@ -3,254 +3,495 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>光鸭 Telegram 检索机器人</title>
+    <title>光鸭 Telegram 检索机器人 · 管理后台</title>
     <style>
       :root {
         color-scheme: light;
-        --bg: #f6f7f9;
+        --bg: #eef1f6;
+        --sidebar: #0f172a;
+        --sidebar-muted: #94a3b8;
+        --sidebar-active: #1e293b;
         --panel: #ffffff;
-        --line: #d9dee7;
-        --text: #172033;
-        --muted: #657083;
-        --primary: #1f7a5a;
-        --primary-dark: #176248;
-        --danger: #b42318;
-        --shadow: 0 8px 24px rgba(23, 32, 51, 0.08);
+        --line: #e2e8f0;
+        --text: #0f172a;
+        --muted: #64748b;
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --success: #16a34a;
+        --danger: #dc2626;
+        --warn: #d97706;
+        --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+        --radius: 12px;
       }
       * { box-sizing: border-box; }
+      html, body { height: 100%; }
       body {
         margin: 0;
-        min-height: 100vh;
         background: var(--bg);
         color: var(--text);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
       }
-      header {
-        border-bottom: 1px solid var(--line);
-        background: var(--panel);
+      .app {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        min-height: 100vh;
       }
-      .wrap {
-        width: min(1120px, calc(100% - 32px));
-        margin: 0 auto;
+
+      /* Sidebar */
+      .sidebar {
+        background: var(--sidebar);
+        color: #e2e8f0;
+        padding: 22px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
       }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #2563eb, #22d3ee);
+        display: grid;
+        place-items: center;
+        font-size: 20px;
+      }
+      .brand .name { font-size: 15px; font-weight: 600; }
+      .brand .sub { font-size: 12px; color: var(--sidebar-muted); }
+      .nav { display: flex; flex-direction: column; gap: 4px; }
+      .nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 9px;
+        color: var(--sidebar-muted);
+        text-decoration: none;
+        font-size: 14px;
+        transition: background 0.15s, color 0.15s;
+      }
+      .nav a:hover { background: var(--sidebar-active); color: #fff; }
+      .nav a.active { background: var(--sidebar-active); color: #fff; }
+      .nav a .ic { width: 18px; text-align: center; }
+      .sidebar .spacer { flex: 1; }
+      .sidebar .foot { font-size: 12px; color: var(--sidebar-muted); }
+
+      /* Main */
+      .main { display: flex; flex-direction: column; min-width: 0; }
       .topbar {
-        min-height: 68px;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: rgba(238, 241, 246, 0.85);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--line);
+        padding: 16px 28px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
       }
-      h1 {
-        margin: 0;
-        font-size: 20px;
-        letter-spacing: 0;
+      .topbar h1 { margin: 0; font-size: 18px; font-weight: 600; }
+      .topbar .crumb { font-size: 12px; color: var(--muted); margin-top: 2px; }
+      .topbar .tools { display: flex; align-items: center; gap: 12px; }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 11px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid var(--line);
+        background: #fff;
       }
-      main {
-        padding: 28px 0 44px;
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+      .dot.on { background: var(--success); box-shadow: 0 0 0 3px rgba(22,163,74,.15); }
+      .dot.off { background: var(--danger); box-shadow: 0 0 0 3px rgba(220,38,38,.12); }
+      .dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(217,119,6,.15); }
+
+      .content { padding: 24px 28px 40px; }
+      .wrap { width: min(1080px, 100%); margin: 0 auto; }
+
+      /* Stat cards */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
       }
-      .grid {
+      .stat {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+      }
+      .stat .k { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+      .stat .v { font-size: 20px; font-weight: 600; margin-top: 8px; }
+
+      .layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 320px;
         gap: 20px;
         align-items: start;
       }
-      .panel {
+      .card {
         background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: 8px;
+        border-radius: var(--radius);
         box-shadow: var(--shadow);
+        overflow: hidden;
       }
-      .panel h2 {
-        margin: 0;
-        padding: 18px 20px;
-        font-size: 16px;
+      .card > .hd {
+        padding: 16px 20px;
         border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
-      form {
-        padding: 20px;
+      .card > .hd h2 { margin: 0; font-size: 15px; font-weight: 600; }
+      .card > .hd .desc { font-size: 12px; color: var(--muted); }
+      .card > .bd { padding: 20px; }
+
+      form { display: grid; gap: 22px; }
+      fieldset {
+        border: 0;
+        margin: 0;
+        padding: 0;
         display: grid;
-        gap: 16px;
+        gap: 14px;
       }
-      label {
+      legend {
+        padding: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 2px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      legend::before {
+        content: "";
+        width: 3px;
+        height: 14px;
+        border-radius: 2px;
+        background: var(--primary);
+        display: inline-block;
+      }
+      label.field {
         display: grid;
-        gap: 7px;
+        gap: 6px;
         font-size: 13px;
         color: var(--muted);
       }
+      label.field .req { color: var(--danger); }
       input, select {
         width: 100%;
-        min-height: 40px;
+        height: 40px;
         border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 8px 10px;
+        border-radius: 9px;
+        padding: 8px 12px;
         color: var(--text);
         background: #fff;
         font-size: 14px;
+        transition: border-color 0.15s, box-shadow 0.15s;
       }
-      .row {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
+      input:focus, select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
+      .hint { font-size: 12px; color: var(--muted); }
+      .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+
       .switch {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        min-height: 40px;
-        padding: 0 2px;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #f8fafc;
       }
-      .switch input {
-        width: 20px;
-        min-height: 20px;
+      .switch .t { font-size: 14px; color: var(--text); font-weight: 500; }
+      .switch .s { font-size: 12px; color: var(--muted); }
+      .toggle { position: relative; width: 44px; height: 26px; flex: none; }
+      .toggle input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+      .toggle .track {
+        position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px;
+        transition: background 0.18s;
       }
+      .toggle .track::after {
+        content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+        background: #fff; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,.2);
+        transition: transform 0.18s;
+      }
+      .toggle input:checked + .track { background: var(--primary); }
+      .toggle input:checked + .track::after { transform: translateX(18px); }
+
       .actions {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        padding-top: 4px;
+        padding-top: 6px;
+        border-top: 1px dashed var(--line);
+        margin-top: 2px;
       }
       button {
-        border: 0;
-        border-radius: 6px;
-        min-height: 38px;
-        padding: 8px 14px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        height: 40px;
+        padding: 0 16px;
         cursor: pointer;
         color: #fff;
         background: var(--primary);
         font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: background 0.15s, opacity 0.15s;
       }
       button:hover { background: var(--primary-dark); }
-      button.secondary {
-        color: var(--text);
-        background: #edf1f5;
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      button.ghost { color: var(--text); background: #fff; border-color: var(--line); }
+      button.ghost:hover { background: #f1f5f9; }
+      button.danger { background: var(--danger); }
+      button.danger:hover { background: #b91c1c; }
+
+      /* Status panel */
+      .statuslist { display: grid; gap: 2px; }
+      .statuslist .item {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 11px 2px; border-bottom: 1px solid var(--line); font-size: 13px;
       }
-      button.secondary:hover { background: #e1e7ee; }
-      button.danger {
-        background: var(--danger);
+      .statuslist .item:last-child { border-bottom: 0; }
+      .statuslist .item span { color: var(--muted); }
+      .statuslist .item strong { color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        background: var(--text);
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.2s, transform 0.2s;
+        pointer-events: none;
+        max-width: 360px;
+        z-index: 50;
       }
-      .side {
-        padding: 18px;
-        display: grid;
-        gap: 14px;
-      }
-      .status {
-        display: grid;
-        gap: 10px;
-      }
-      .status div {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        border-bottom: 1px solid var(--line);
-        padding-bottom: 9px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .status strong {
-        color: var(--text);
-        text-align: right;
-      }
-      .notice {
-        min-height: 22px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      @media (max-width: 860px) {
-        .grid { grid-template-columns: 1fr; }
-        .row { grid-template-columns: 1fr; }
-        .topbar { align-items: flex-start; flex-direction: column; padding: 16px 0; }
+      .toast.show { opacity: 1; transform: translateY(0); }
+      .toast.err { background: var(--danger); }
+
+      @media (max-width: 960px) {
+        .app { grid-template-columns: 1fr; }
+        .sidebar {
+          position: static; height: auto; flex-direction: row; align-items: center;
+          gap: 16px; padding: 14px 18px;
+        }
+        .sidebar .nav, .sidebar .spacer, .sidebar .foot { display: none; }
+        .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .layout { grid-template-columns: 1fr; }
+        .row2 { grid-template-columns: 1fr; }
+        .content { padding: 18px 16px 32px; }
+        .topbar { padding: 14px 16px; }
       }
     </style>
   </head>
   <body>
-    <header>
-      <div class="wrap topbar">
-        <h1>光鸭 Telegram 检索机器人</h1>
-        <div class="notice" id="notice"></div>
-      </div>
-    </header>
-    <main class="wrap grid">
-      <section class="panel">
-        <h2>运行配置</h2>
-        <form id="configForm">
-          <label>
-            Telegram Bot Token
-            <input id="telegram_bot_token" name="telegram_bot_token" autocomplete="off" placeholder="留空表示不修改已有 token" />
-          </label>
-          <label>
-            光鸭 API 地址
-            <input id="guangya_api_base" name="guangya_api_base" placeholder="http://154.201.75.36:8000" />
-          </label>
-          <label>
-            光鸭 API Key
-            <input id="guangya_api_key" name="guangya_api_key" autocomplete="off" placeholder="留空表示不修改已有 key" />
-          </label>
-          <div class="row">
-            <label>
-              每页显示数量
-              <input id="page_size" name="page_size" type="number" min="1" max="50" step="1" />
-            </label>
-            <label>
-              最多显示数量
-              <input id="max_results" name="max_results" type="number" min="0" step="1" />
-            </label>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">🦆</div>
+          <div>
+            <div class="name">光鸭检索</div>
+            <div class="sub">Telegram Bot 管理</div>
           </div>
-          <div class="row">
-            <label>
-              状态过滤
-              <input id="status" name="status" placeholder="留空为全部" />
-            </label>
-            <label>
-              请求超时秒数
-              <input id="request_timeout_seconds" name="request_timeout_seconds" type="number" min="3" max="120" step="1" />
-            </label>
-          </div>
-          <label class="switch">
-            Bot 启用
-            <input id="bot_enabled" name="bot_enabled" type="checkbox" />
-          </label>
-          <label class="switch">
-            Telegram 代理启用
-            <input id="proxy_enabled" name="proxy_enabled" type="checkbox" />
-          </label>
-          <label>
-            Telegram 代理地址
-            <input id="proxy_url" name="proxy_url" autocomplete="off" placeholder="留空表示不修改，支持 http:// 和 socks5://" />
-          </label>
-          <div class="row">
-            <label>
-              后台用户名
-              <input id="web_username" name="web_username" />
-            </label>
-            <label>
-              后台密码
-              <input id="web_password" name="web_password" type="password" placeholder="留空表示不修改" />
-            </label>
-          </div>
-          <div class="actions">
-            <button type="submit">保存配置</button>
-            <button class="secondary" type="button" id="restartBtn">重启 Bot</button>
-            <button class="secondary" type="button" id="startBtn">启动 Bot</button>
-            <button class="danger" type="button" id="stopBtn">停止 Bot</button>
-          </div>
-        </form>
-      </section>
-      <aside class="panel side">
-        <h2>状态</h2>
-        <div class="status">
-          <div><span>Bot</span><strong id="bot_running">-</strong></div>
-          <div><span>Telegram Token</span><strong id="telegram_bot_token_set">-</strong></div>
-          <div><span>API Key</span><strong id="guangya_api_key_set">-</strong></div>
-          <div><span>代理</span><strong id="proxy_label">-</strong></div>
-          <div><span>光鸭 API</span><strong id="guangya_api_ok">-</strong></div>
-          <div><span>每页</span><strong id="page_size_label">-</strong></div>
-          <div><span>最多</span><strong id="max_results_label">-</strong></div>
         </div>
-        <button class="secondary" type="button" id="refreshBtn">刷新状态</button>
+        <nav class="nav">
+          <a href="#dashboard" class="active"><span class="ic">📊</span> 概览</a>
+          <a href="#config"><span class="ic">⚙️</span> 运行配置</a>
+          <a href="#status"><span class="ic">📡</span> 运行状态</a>
+        </nav>
+        <div class="spacer"></div>
+        <div class="foot">配置保存于<br />data/config.json</div>
       </aside>
-    </main>
+
+      <div class="main">
+        <header class="topbar">
+          <div>
+            <h1>检索机器人控制台</h1>
+            <div class="crumb">运行配置 · 状态监控</div>
+          </div>
+          <div class="tools">
+            <span class="badge"><span class="dot" id="topDot"></span><span id="topStatus">检测中…</span></span>
+            <button class="ghost" type="button" id="refreshBtn">刷新</button>
+          </div>
+        </header>
+
+        <div class="content">
+          <div class="wrap">
+            <section class="stats" id="dashboard">
+              <div class="stat">
+                <div class="k"><span class="dot" id="s_bot_dot"></span> Bot 运行</div>
+                <div class="v" id="bot_running">-</div>
+              </div>
+              <div class="stat">
+                <div class="k"><span class="dot" id="s_api_dot"></span> 光鸭 API</div>
+                <div class="v" id="guangya_api_ok">-</div>
+              </div>
+              <div class="stat">
+                <div class="k">每页显示</div>
+                <div class="v" id="page_size_label">-</div>
+              </div>
+              <div class="stat">
+                <div class="k">最多显示</div>
+                <div class="v" id="max_results_label">-</div>
+              </div>
+            </section>
+
+            <div class="layout">
+              <section class="card" id="config">
+                <div class="hd">
+                  <h2>运行配置</h2>
+                  <span class="desc">敏感项留空表示不修改</span>
+                </div>
+                <div class="bd">
+                  <form id="configForm">
+                    <fieldset>
+                      <legend>接口配置</legend>
+                      <label class="field">
+                        Telegram Bot Token
+                        <input id="telegram_bot_token" name="telegram_bot_token" autocomplete="off" placeholder="留空表示不修改已有 token" />
+                        <span class="hint">从 @BotFather 获取，修改后会自动重启 Bot。</span>
+                      </label>
+                      <label class="field">
+                        光鸭 API 地址
+                        <input id="guangya_api_base" name="guangya_api_base" placeholder="http://host.docker.internal:8000" />
+                      </label>
+                      <label class="field">
+                        光鸭 API Key
+                        <input id="guangya_api_key" name="guangya_api_key" autocomplete="off" placeholder="留空表示不修改已有 key" />
+                        <span class="hint">需具备 search:read 权限的密钥。</span>
+                      </label>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend>检索显示</legend>
+                      <div class="row2">
+                        <label class="field">
+                          每页显示数量
+                          <input id="page_size" name="page_size" type="number" min="1" max="50" step="1" />
+                        </label>
+                        <label class="field">
+                          最多显示数量
+                          <input id="max_results" name="max_results" type="number" min="0" step="1" />
+                          <span class="hint">0 表示不限。</span>
+                        </label>
+                      </div>
+                      <div class="row2">
+                        <label class="field">
+                          状态过滤
+                          <input id="status" name="status" placeholder="留空为全部" />
+                        </label>
+                        <label class="field">
+                          请求超时（秒）
+                          <input id="request_timeout_seconds" name="request_timeout_seconds" type="number" min="3" max="120" step="1" />
+                        </label>
+                      </div>
+                      <div class="switch">
+                        <div>
+                          <div class="t">启用 Bot</div>
+                          <div class="s">关闭后保存不会自动拉起 Bot</div>
+                        </div>
+                        <span class="toggle"><input id="bot_enabled" name="bot_enabled" type="checkbox" /><span class="track"></span></span>
+                      </div>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend>Telegram 代理</legend>
+                      <div class="switch">
+                        <div>
+                          <div class="t">启用代理</div>
+                          <div class="s">支持 http:// 与 socks5://</div>
+                        </div>
+                        <span class="toggle"><input id="proxy_enabled" name="proxy_enabled" type="checkbox" /><span class="track"></span></span>
+                      </div>
+                      <label class="field">
+                        代理地址
+                        <input id="proxy_url" name="proxy_url" autocomplete="off" placeholder="留空表示不修改，例：socks5://user:pass@ip:port" />
+                      </label>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend>后台账号</legend>
+                      <div class="row2">
+                        <label class="field">
+                          用户名
+                          <input id="web_username" name="web_username" />
+                        </label>
+                        <label class="field">
+                          密码
+                          <input id="web_password" name="web_password" type="password" placeholder="留空表示不修改" />
+                        </label>
+                      </div>
+                      <span class="hint">修改后台账号后，下次请求需用新账号登录。</span>
+                    </fieldset>
+
+                    <div class="actions">
+                      <button type="submit" id="saveBtn">💾 保存配置</button>
+                      <button class="ghost" type="button" id="startBtn">▶ 启动</button>
+                      <button class="ghost" type="button" id="restartBtn">↻ 重启</button>
+                      <button class="danger" type="button" id="stopBtn">■ 停止</button>
+                    </div>
+                  </form>
+                </div>
+              </section>
+
+              <aside class="card" id="status">
+                <div class="hd"><h2>运行状态</h2></div>
+                <div class="bd">
+                  <div class="statuslist">
+                    <div class="item"><span>Bot</span><strong id="st_bot"><span class="dot"></span>-</strong></div>
+                    <div class="item"><span>Telegram Token</span><strong id="telegram_bot_token_set">-</strong></div>
+                    <div class="item"><span>API Key</span><strong id="guangya_api_key_set">-</strong></div>
+                    <div class="item"><span>光鸭 API</span><strong id="st_api"><span class="dot"></span>-</strong></div>
+                    <div class="item"><span>代理</span><strong id="proxy_label">-</strong></div>
+                    <div class="item"><span>每页 / 最多</span><strong id="pm_label">-</strong></div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
     <script>
-      const notice = document.getElementById("notice");
+      const toast = document.getElementById("toast");
       const fields = [
         "guangya_api_base",
         "page_size",
@@ -262,10 +503,12 @@
         "web_username",
       ];
 
-      function show(message) {
-        notice.textContent = message;
-        clearTimeout(window.__noticeTimer);
-        window.__noticeTimer = setTimeout(() => (notice.textContent = ""), 3500);
+      function show(message, isError = false) {
+        toast.textContent = message;
+        toast.classList.toggle("err", isError);
+        toast.classList.add("show");
+        clearTimeout(window.__toastTimer);
+        window.__toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
       }
 
       async function api(path, options = {}) {
@@ -281,6 +524,12 @@
         return value ? "是" : "否";
       }
 
+      function setDot(el, state) {
+        // state: 'on' | 'off' | 'warn' | ''
+        if (!el) return;
+        el.className = "dot" + (state ? " " + state : "");
+      }
+
       function applyConfig(data) {
         for (const id of fields) {
           const el = document.getElementById(id);
@@ -292,14 +541,36 @@
         document.getElementById("guangya_api_key").value = "";
         document.getElementById("proxy_url").value = "";
         document.getElementById("web_password").value = "";
-        document.getElementById("bot_running").textContent = data.bot_running ? "运行中" : "未运行";
+
+        const running = Boolean(data.bot_running);
+        document.getElementById("bot_running").textContent = running ? "运行中" : "未运行";
+        setDot(document.getElementById("s_bot_dot"), running ? "on" : "off");
+        document.getElementById("st_bot").innerHTML =
+          `<span class="dot ${running ? "on" : "off"}"></span>${running ? "运行中" : "未运行"}`;
+        document.getElementById("topStatus").textContent = running ? "Bot 运行中" : "Bot 未运行";
+        setDot(document.getElementById("topDot"), running ? "on" : "off");
+
         document.getElementById("telegram_bot_token_set").textContent = yesNo(data.telegram_bot_token_set);
         document.getElementById("guangya_api_key_set").textContent = yesNo(data.guangya_api_key_set);
-        document.getElementById("proxy_label").textContent = data.proxy_enabled
+
+        const proxyText = data.proxy_enabled
           ? (data.proxy_url_set ? "已启用" : "已启用但未配置")
           : "关闭";
+        document.getElementById("proxy_label").textContent = proxyText;
+
         document.getElementById("page_size_label").textContent = data.page_size;
-        document.getElementById("max_results_label").textContent = data.max_results === 0 ? "不限" : data.max_results;
+        const maxText = data.max_results === 0 ? "不限" : data.max_results;
+        document.getElementById("max_results_label").textContent = maxText;
+        document.getElementById("pm_label").textContent = `${data.page_size} / ${maxText}`;
+      }
+
+      function applyHealth(health) {
+        const ok = health && health.guangya_api_ok;
+        const el = document.getElementById("guangya_api_ok");
+        el.textContent = ok ? "正常" : "异常";
+        setDot(document.getElementById("s_api_dot"), ok ? "on" : "off");
+        document.getElementById("st_api").innerHTML =
+          `<span class="dot ${ok ? "on" : "off"}"></span>${ok ? "正常" : "异常"}`;
       }
 
       async function load() {
@@ -307,45 +578,61 @@
         applyConfig(config);
         try {
           const health = await api("/api/health");
-          document.getElementById("guangya_api_ok").textContent = health.guangya_api_ok ? "正常" : "异常";
+          applyHealth(health);
         } catch {
           document.getElementById("guangya_api_ok").textContent = "未知";
+          setDot(document.getElementById("s_api_dot"), "warn");
+          document.getElementById("st_api").innerHTML = `<span class="dot warn"></span>未知`;
         }
       }
 
       document.getElementById("configForm").addEventListener("submit", async (event) => {
         event.preventDefault();
-        const body = {};
-        for (const el of event.currentTarget.elements) {
-          if (!el.name) continue;
-          if (el.type === "checkbox") body[el.name] = el.checked;
-          else if (["page_size", "max_results", "request_timeout_seconds"].includes(el.name)) body[el.name] = Number(el.value);
-          else if (["telegram_bot_token", "guangya_api_key", "proxy_url", "web_password"].includes(el.name)) {
-            if (el.value !== "") body[el.name] = el.value;
-          } else body[el.name] = el.value;
+        const btn = document.getElementById("saveBtn");
+        btn.disabled = true;
+        try {
+          const body = {};
+          for (const el of event.currentTarget.elements) {
+            if (!el.name) continue;
+            if (el.type === "checkbox") body[el.name] = el.checked;
+            else if (["page_size", "max_results", "request_timeout_seconds"].includes(el.name)) body[el.name] = Number(el.value);
+            else if (["telegram_bot_token", "guangya_api_key", "proxy_url", "web_password"].includes(el.name)) {
+              if (el.value !== "") body[el.name] = el.value;
+            } else body[el.name] = el.value;
+          }
+          const data = await api("/api/config", { method: "PUT", body: JSON.stringify(body) });
+          applyConfig(data);
+          show("配置已保存");
+        } catch (err) {
+          show(err.message || "保存失败", true);
+        } finally {
+          btn.disabled = false;
         }
-        const data = await api("/api/config", { method: "PUT", body: JSON.stringify(body) });
-        applyConfig(data);
-        show("配置已保存");
       });
 
-      document.getElementById("restartBtn").onclick = async () => {
-        const data = await api("/api/bot/restart", { method: "POST" });
-        show(data.message);
-        await load();
-      };
-      document.getElementById("startBtn").onclick = async () => {
-        const data = await api("/api/bot/start", { method: "POST" });
-        show(data.message);
-        await load();
-      };
-      document.getElementById("stopBtn").onclick = async () => {
-        const data = await api("/api/bot/stop", { method: "POST" });
-        show(data.message);
-        await load();
-      };
-      document.getElementById("refreshBtn").onclick = load;
-      load().catch((err) => show(err.message || "加载失败"));
+      async function botAction(path) {
+        try {
+          const data = await api(path, { method: "POST" });
+          show(data.message || "操作完成");
+          await load();
+        } catch (err) {
+          show(err.message || "操作失败", true);
+        }
+      }
+
+      document.getElementById("restartBtn").onclick = () => botAction("/api/bot/restart");
+      document.getElementById("startBtn").onclick = () => botAction("/api/bot/start");
+      document.getElementById("stopBtn").onclick = () => botAction("/api/bot/stop");
+      document.getElementById("refreshBtn").onclick = () => load().catch((err) => show(err.message || "加载失败", true));
+
+      for (const a of document.querySelectorAll(".nav a")) {
+        a.addEventListener("click", () => {
+          document.querySelectorAll(".nav a").forEach((n) => n.classList.remove("active"));
+          a.classList.add("active");
+        });
+      }
+
+      load().catch((err) => show(err.message || "加载失败", true));
     </script>
   </body>
 </html>

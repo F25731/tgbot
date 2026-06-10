@@ -24,12 +24,12 @@ from .guangya_api import GuangyaApiClient
 
 logger = logging.getLogger(__name__)
 
-CALLBACK_DETAIL_PREFIX = "gy:d:"
 CALLBACK_PAGE_PREFIX = "gy:p:"
 CALLBACK_JUMP_PREFIX = "gy:j:"
-CALLBACK_BACK = "gy:b"
+DETAIL_START_PREFIX = "d_"
 PAGE_WINDOW = 4
 PAGE_JUMP = 4
+MAX_LIST_TITLE_LENGTH = 76
 
 
 @dataclass
@@ -57,6 +57,7 @@ class TelegramSearchBot:
         self._task: asyncio.Task | None = None
         self._stop_event: asyncio.Event | None = None
         self._sessions: dict[int, SearchSession] = {}
+        self._bot_username: str | None = None
 
     def running(self) -> bool:
         return bool(self._task and not self._task.done())
@@ -85,6 +86,7 @@ class TelegramSearchBot:
         self._task = None
         self._stop_event = None
         self.application = None
+        self._bot_username = None
 
     async def restart(self) -> str:
         await self.stop()
@@ -118,7 +120,7 @@ class TelegramSearchBot:
         application.add_handler(
             CallbackQueryHandler(
                 self._callback,
-                pattern=r"^gy:(?:d:\d+|p:\d+|j:\d+|b)$",
+                pattern=r"^gy:(?:p:\d+|j:\d+)$",
             )
         )
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._text_search))
@@ -127,6 +129,12 @@ class TelegramSearchBot:
         try:
             await application.initialize()
             await application.start()
+            try:
+                me = await application.bot.get_me()
+                self._bot_username = me.username
+            except Exception:
+                logger.exception("获取 Bot 用户名失败，资源详情链接将不可用")
+                self._bot_username = None
             if application.updater is None:
                 raise RuntimeError("python-telegram-bot updater 不可用")
             await application.updater.start_polling(
@@ -169,35 +177,38 @@ class TelegramSearchBot:
         title = str(item.get("name") or "-").replace("\r", " ").replace("\n", " ")
         return " ".join(title.split())
 
-    def _button_title(self, index: int, item: dict[str, Any]) -> str:
-        title = f"{index}. {self._clean_title(item)}"
-        return title if len(title) <= 58 else f"{title[:57]}..."
+    def _list_title(self, item: dict[str, Any]) -> str:
+        title = self._clean_title(item)
+        return title if len(title) <= MAX_LIST_TITLE_LENGTH else f"{title[:MAX_LIST_TITLE_LENGTH - 1]}..."
 
-    def _page_summary(self, session: SearchSession, page: SearchPage) -> str:
-        limit_text = "不限" if self._config().max_results == 0 else str(self._config().max_results)
-        more_text = "，还有更多" if page.has_more else ""
-        return (
-            f"关键词「{html.escape(session.keyword)}」的搜索结果\n"
-            f"第 {session.current_page} 页，当前 {len(page.items)} 条，已显示 {page.shown_count} 条，最多 {limit_text}{more_text}"
-        )
+    def _detail_link(self, resource_id: Any) -> str | None:
+        if not self._bot_username or resource_id is None:
+            return None
+        return f"https://t.me/{self._bot_username}?start={DETAIL_START_PREFIX}{resource_id}"
 
-    def _page_item_markup(self, session: SearchSession, page: SearchPage) -> list[list[InlineKeyboardButton]]:
-        rows: list[list[InlineKeyboardButton]] = []
+    def _page_list_text(self, session: SearchSession, page: SearchPage) -> str:
         start_index = page.shown_count - len(page.items) + 1
+        lines = [
+            "🔍 <b>搜索结果</b>",
+            "",
+            f"关键词「{html.escape(session.keyword)}」",
+            "",
+        ]
         for offset, item in enumerate(page.items):
-            rid = item.get("id")
-            if rid is None:
-                continue
-            rows.append(
-                [
-                    InlineKeyboardButton(
-                        self._button_title(start_index + offset, item),
-                        callback_data=f"{CALLBACK_DETAIL_PREFIX}{rid}",
-                    )
-                ]
-            )
-        rows.append(self._page_nav_row(session))
-        return rows
+            index = start_index + offset
+            name = html.escape(self._list_title(item))
+            link = self._detail_link(item.get("id"))
+            if link:
+                lines.append(f'{index}. <a href="{link}">{name}</a>')
+            else:
+                lines.append(f"{index}. {name}")
+
+        footer = f"第 {session.current_page} 页 · 已显示 {page.shown_count} 条"
+        if page.has_more:
+            footer += " · 还有更多"
+        lines.append("")
+        lines.append(f"<i>{footer}</i>")
+        return "\n".join(lines)
 
     def _page_nav_row(self, session: SearchSession) -> list[InlineKeyboardButton]:
         current = session.current_page
@@ -243,17 +254,16 @@ class TelegramSearchBot:
                     jump_to = max(1, current - PAGE_JUMP)
                 buttons.append(InlineKeyboardButton("…", callback_data=f"{CALLBACK_JUMP_PREFIX}{jump_to}"))
                 continue
-            label = f"{page_no}~" if page_no == current else str(page_no)
+            label = f"· {page_no} ·" if page_no == current else str(page_no)
             buttons.append(InlineKeyboardButton(label, callback_data=f"{CALLBACK_PAGE_PREFIX}{page_no}"))
 
         return buttons
 
-    def _detail_markup(self, session: SearchSession | None) -> InlineKeyboardMarkup | None:
-        if not session:
+    def _page_markup(self, session: SearchSession) -> InlineKeyboardMarkup | None:
+        nav_row = self._page_nav_row(session)
+        if not nav_row or len(nav_row) <= 1:
             return None
-        rows = [[InlineKeyboardButton("返回列表", callback_data=CALLBACK_BACK)]]
-        rows.append(self._page_nav_row(session))
-        return InlineKeyboardMarkup(rows)
+        return InlineKeyboardMarkup([nav_row])
 
     async def _render_page(
         self,
@@ -271,8 +281,8 @@ class TelegramSearchBot:
             await bot.send_message(chat_id=chat_id, text=f"没有找到关键词「{session.keyword}」的结果")
             return
 
-        text = self._page_summary(session, page)
-        reply_markup = InlineKeyboardMarkup(self._page_item_markup(session, page))
+        text = self._page_list_text(session, page)
+        reply_markup = self._page_markup(session)
         if message_id is None:
             sent = await bot.send_message(
                 chat_id=chat_id,
@@ -314,8 +324,28 @@ class TelegramSearchBot:
         extract_code = item.get("extract_code")
         if extract_code:
             lines.append(f"<b>提取码：</b>{html.escape(str(extract_code))}")
-        lines.append(f"<b>ID：</b>{html.escape(str(item.get('id') or '-'))}")
         return "\n".join(lines)
+
+    def _detail_markup(self, item: dict[str, Any]) -> InlineKeyboardMarkup | None:
+        link = str(item.get("link") or "")
+        if link.startswith("http://") or link.startswith("https://"):
+            return InlineKeyboardMarkup([[InlineKeyboardButton("🔗 打开链接", url=link)]])
+        return None
+
+    async def _send_detail(self, chat_id: int, resource_id: int, bot) -> None:
+        try:
+            item = await self._api().detail(resource_id)
+        except Exception as exc:
+            logger.exception("获取资源详情失败")
+            await bot.send_message(chat_id=chat_id, text=f"获取资源详情失败：{exc}")
+            return
+        await bot.send_message(
+            chat_id=chat_id,
+            text=self._format_detail(item),
+            reply_markup=self._detail_markup(item),
+            parse_mode="HTML",
+            disable_web_page_preview=True,
+        )
 
     async def _fetch_page(
         self,
@@ -383,8 +413,21 @@ class TelegramSearchBot:
         await self._render_page(chat_id, session, bot)
 
     async def _start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if update.effective_message:
-            await update.effective_message.reply_text("发送关键词即可搜索资源，也可以使用 /gy 关键词")
+        message = update.effective_message
+        chat = update.effective_chat
+        if not message or not chat:
+            return
+        args = context.args or []
+        if args and args[0].startswith(DETAIL_START_PREFIX):
+            raw = args[0][len(DETAIL_START_PREFIX):]
+            try:
+                resource_id = int(raw)
+            except ValueError:
+                await message.reply_text("无效的资源链接")
+                return
+            await self._send_detail(chat.id, resource_id, context.bot)
+            return
+        await message.reply_text("发送关键词即可搜索资源，也可以使用 /gy 关键词")
 
     async def _status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not update.effective_message:
@@ -439,60 +482,16 @@ class TelegramSearchBot:
         session = self._sessions.get(chat_id)
 
         try:
-            if payload == CALLBACK_BACK:
+            if payload.startswith(CALLBACK_PAGE_PREFIX) or payload.startswith(CALLBACK_JUMP_PREFIX):
                 if not session:
                     await query.answer("列表已过期，请重新搜索", show_alert=False)
                     return
-                await query.answer("返回列表", show_alert=False)
-                await self._render_page(
-                    chat_id,
-                    session,
-                    context.bot,
-                    message_id=session.list_message_id,
+                prefix = (
+                    CALLBACK_PAGE_PREFIX
+                    if payload.startswith(CALLBACK_PAGE_PREFIX)
+                    else CALLBACK_JUMP_PREFIX
                 )
-                return
-
-            if payload.startswith(CALLBACK_DETAIL_PREFIX):
-                if not session:
-                    await query.answer("列表已过期，请重新搜索", show_alert=False)
-                    return
-                resource_id = int(payload.removeprefix(CALLBACK_DETAIL_PREFIX))
-                await query.answer("加载中", show_alert=False)
-                item = await self._api().detail(resource_id)
-                await context.bot.send_message(
-                    chat_id=chat_id,
-                    text=self._format_detail(item),
-                    reply_markup=self._detail_markup(session),
-                    parse_mode="HTML",
-                    disable_web_page_preview=True,
-                )
-                return
-
-            if payload.startswith(CALLBACK_PAGE_PREFIX):
-                if not session:
-                    await query.answer("列表已过期，请重新搜索", show_alert=False)
-                    return
-                target_page = int(payload.removeprefix(CALLBACK_PAGE_PREFIX))
-                await query.answer("加载中", show_alert=False)
-                page = await self._ensure_page(session, target_page, context.bot)
-                if not page:
-                    await query.answer("没有更多页了", show_alert=False)
-                    return
-                session.current_page = target_page
-                session.updated_at = datetime.now(timezone.utc)
-                await self._render_page(
-                    chat_id,
-                    session,
-                    context.bot,
-                    message_id=session.list_message_id,
-                )
-                return
-
-            if payload.startswith(CALLBACK_JUMP_PREFIX):
-                if not session:
-                    await query.answer("列表已过期，请重新搜索", show_alert=False)
-                    return
-                target_page = int(payload.removeprefix(CALLBACK_JUMP_PREFIX))
+                target_page = int(payload.removeprefix(prefix))
                 await query.answer("加载中", show_alert=False)
                 page = await self._ensure_page(session, target_page, context.bot)
                 if not page:
