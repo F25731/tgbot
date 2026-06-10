@@ -12,6 +12,7 @@ from typing import Any, Deque
 LOG_LEVELS = ("info", "success", "warn", "error")
 EVENTS_MAXLEN = 400
 TOP_KEYWORDS = 10
+TOP_RESOURCES = 20
 SAVE_DEBOUNCE_SECONDS = 5.0
 
 
@@ -71,6 +72,8 @@ class Metrics:
         self.today_searches: int = 0
         self.today_users: set[int] = set()
         self.keywords: Counter[str] = Counter()
+        self.resource_clicks: dict[str, list[float]] = {}  # resource_id -> [timestamp, ...]
+        self.resource_names: dict[str, str] = {}  # resource_id -> name
         self.last_health: dict[str, Any] | None = None
 
         self._events: Deque[Event] = deque(maxlen=EVENTS_MAXLEN)
@@ -145,6 +148,11 @@ class Metrics:
         self.totals["details"] += 1
         self.totals["api_calls"] += 1
         self._touch_user(user_id)
+        # 记录资源点击时间戳
+        rid = str(resource_id)
+        self.resource_clicks.setdefault(rid, []).append(time.time())
+        if resource_name:
+            self.resource_names[rid] = resource_name
         label = resource_name or f"#{resource_id}"
         self.add_event(
             "info",
@@ -210,6 +218,39 @@ class Metrics:
             )
         )
 
+    # ---------- hot resources ----------
+    def _prune_clicks(self, window_seconds: float) -> None:
+        """清理过期的点击记录。"""
+        cutoff = time.time() - window_seconds
+        to_delete = []
+        for rid, timestamps in self.resource_clicks.items():
+            filtered = [ts for ts in timestamps if ts >= cutoff]
+            if filtered:
+                self.resource_clicks[rid] = filtered
+            else:
+                to_delete.append(rid)
+        for rid in to_delete:
+            del self.resource_clicks[rid]
+            self.resource_names.pop(rid, None)
+
+    def top_resources(self, window_hours: int = 48, limit: int = TOP_RESOURCES) -> list[dict[str, Any]]:
+        """返回时间窗口内点击最多的资源列表。"""
+        window_seconds = window_hours * 3600
+        self._prune_clicks(window_seconds)
+        counted = [
+            (rid, len(timestamps))
+            for rid, timestamps in self.resource_clicks.items()
+        ]
+        counted.sort(key=lambda x: x[1], reverse=True)
+        result = []
+        for rid, count in counted[:limit]:
+            result.append({
+                "resource_id": int(rid),
+                "name": self.resource_names.get(rid, f"#{rid}"),
+                "clicks": count,
+            })
+        return result
+
     # ---------- read ----------
     def events_after(self, after_id: int = 0, limit: int = 200) -> list[dict[str, Any]]:
         out = [e.to_dict() for e in self._events if e.id > after_id]
@@ -252,6 +293,8 @@ class Metrics:
             "today_searches": self.today_searches,
             "today_users": list(self.today_users),
             "keywords": dict(self.keywords),
+            "resource_clicks": self.resource_clicks,
+            "resource_names": self.resource_names,
         }
         try:
             self.path.write_text(
@@ -274,6 +317,14 @@ class Metrics:
                 self.totals[key] = totals[key]
         self.all_users = set(int(u) for u in raw.get("all_users", []) if isinstance(u, int))
         self.keywords = Counter({str(k): int(v) for k, v in (raw.get("keywords") or {}).items()})
+        # 恢复资源点击数据
+        rc = raw.get("resource_clicks") or {}
+        self.resource_clicks = {
+            str(k): [float(ts) for ts in v if isinstance(ts, (int, float))]
+            for k, v in rc.items() if isinstance(v, list)
+        }
+        rn = raw.get("resource_names") or {}
+        self.resource_names = {str(k): str(v) for k, v in rn.items()}
         if raw.get("today_date") == _today_key():
             self.today_date = raw["today_date"]
             self.today_searches = int(raw.get("today_searches", 0) or 0)

@@ -119,6 +119,7 @@ class TelegramSearchBot:
         )
         application.add_handler(CommandHandler("start", self._start_command))
         application.add_handler(CommandHandler("gy", self._search_command))
+        application.add_handler(CommandHandler("hot", self._hot_command))
         application.add_handler(CommandHandler("status", self._status_command))
         application.add_handler(
             CallbackQueryHandler(
@@ -433,6 +434,34 @@ class TelegramSearchBot:
 
     async def _send_page(self, chat_id: int, session: SearchSession, bot) -> None:
         await self._render_page(chat_id, session, bot)
+
+    async def _hot_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        message = update.effective_message
+        if not message:
+            return
+        window = self._config().hot_window_hours
+        top = self.metrics.top_resources(window_hours=window, limit=20)
+        if not top:
+            await message.reply_text(f"最近 {window} 小时内暂无热门资源")
+            return
+        lines = [
+            f"🔥 <b>热门资源 TOP {len(top)}</b>",
+            f"<i>最近 {window} 小时内点击最多</i>",
+            "",
+        ]
+        for i, item in enumerate(top, 1):
+            name = html.escape(str(item["name"]))
+            clicks = item["clicks"]
+            link = self._detail_link(item["resource_id"])
+            if link:
+                lines.append(f'{i}. <a href="{link}">{name}</a>  ({clicks}次)')
+            else:
+                lines.append(f"{i}. {name}  ({clicks}次)")
+        await message.reply_text(
+            "\n".join(lines),
+            parse_mode="HTML",
+            disable_web_page_preview=True,
+        )
 
     async def _start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         message = update.effective_message

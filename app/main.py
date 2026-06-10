@@ -47,6 +47,7 @@ class ConfigPayload(BaseModel):
     max_results: int | None = Field(default=None, ge=0)
     status: str | None = Field(default=None, max_length=32)
     request_timeout_seconds: int | None = Field(default=None, ge=3, le=120)
+    hot_window_hours: int | None = Field(default=None, ge=1, le=720)
     bot_enabled: bool | None = Field(default=None)
     proxy_enabled: bool | None = Field(default=None)
     proxy_url: str | None = Field(default=None, max_length=512)
@@ -151,6 +152,13 @@ async def logs(
 ):
     events = metrics.events_after(after_id=after, limit=limit)
     return {"events": events, "last_event_id": metrics.snapshot(bot.running())["last_event_id"]}
+
+
+@app.get("/api/hot")
+async def hot_resources(_: str = Depends(require_admin)):
+    window = store.get().hot_window_hours
+    top = metrics.top_resources(window_hours=window, limit=20)
+    return {"window_hours": window, "resources": top}
 
 
 @app.middleware("http")

@@ -33,6 +33,7 @@ class RuntimeConfig:
     bot_enabled: bool = True
     proxy_enabled: bool = False
     proxy_url: str = ""
+    hot_window_hours: int = 48
     web_username: str = "admin"
     web_password: str = "admin123"
 
@@ -40,6 +41,7 @@ class RuntimeConfig:
         self.guangya_api_base = self.guangya_api_base.rstrip("/")
         self.page_size = max(1, min(int(self.page_size or 10), 50))
         self.max_results = max(0, int(self.max_results or 0))
+        self.hot_window_hours = max(1, int(self.hot_window_hours or 48))
         self.request_timeout_seconds = max(3, int(self.request_timeout_seconds or 20))
         self.status = (self.status or "").strip()
         self.proxy_url = (self.proxy_url or "").strip()
@@ -74,6 +76,7 @@ class ConfigStore:
             max_results=_int_env("MAX_RESULTS", 0),
             status=os.getenv("SEARCH_STATUS", ""),
             request_timeout_seconds=_int_env("REQUEST_TIMEOUT_SECONDS", 20),
+            hot_window_hours=_int_env("HOT_WINDOW_HOURS", 48),
             bot_enabled=_bool_env("BOT_ENABLED", True),
             proxy_enabled=_bool_env("PROXY_ENABLED", False),
             proxy_url=os.getenv("PROXY_URL", ""),

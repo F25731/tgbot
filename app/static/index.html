@@ -270,6 +270,9 @@ a{color:var(--blue);text-decoration:none}
         <div class="fd"><span>状态过滤</span><input id="status" name="status" placeholder="留空表示全部"/></div>
         <div class="fd"><span>请求超时(秒)</span><input id="request_timeout_seconds" name="request_timeout_seconds" type="number" min="3" max="120"/></div>
       </div>
+      <div class="fr">
+        <div class="fd"><span>热门资源时间窗口(小时)</span><input id="hot_window_hours" name="hot_window_hours" type="number" min="1" max="720"/><div class="h">统计该时间内点击最多的资源，默认 48</div></div>
+      </div>
 
       <div class="sep"><div class="sep-label">开关</div></div>
       <div class="sw"><span>Bot 启用</span><label class="tg"><input type="checkbox" id="bot_enabled" name="bot_enabled"/><span class="sl"></span></label></div>
@@ -311,7 +314,7 @@ a{color:var(--blue);text-decoration:none}
 
 <script>
 const $=s=>document.getElementById(s);
-const FIELDS=["guangya_api_base","page_size","max_results","status","request_timeout_seconds","bot_enabled","proxy_enabled","web_username"];
+const FIELDS=["guangya_api_base","page_size","max_results","status","request_timeout_seconds","hot_window_hours","bot_enabled","proxy_enabled","web_username"];
 let lastEid=0,logT=null,statsT=null,upT=null,upBase=0,upOn=false;
 
 /* ===== toast ===== */
@@ -384,7 +387,7 @@ $("cfgForm").addEventListener("submit",async e=>{
   e.preventDefault();const body={};
   for(const el of e.currentTarget.elements){if(!el.name)continue;
     if(el.type==="checkbox")body[el.name]=el.checked;
-    else if(["page_size","max_results","request_timeout_seconds"].includes(el.name))body[el.name]=Number(el.value);
+    else if(["page_size","max_results","request_timeout_seconds","hot_window_hours"].includes(el.name))body[el.name]=Number(el.value);
     else if(["telegram_bot_token","guangya_api_key","proxy_url","web_password"].includes(el.name)){if(el.value!=="")body[el.name]=el.value}
     else body[el.name]=el.value}
   try{await api("/api/config",{method:"PUT",body:JSON.stringify(body)});toast("配置已保存","ok");loadCfg();loadStats()}
