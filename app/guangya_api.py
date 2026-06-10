@@ -66,10 +66,11 @@ class GuangyaApiClient:
 class GuangyaPushApiClient:
     """光鸭推送 API 客户端。"""
 
-    def __init__(self, api_base: str, api_key: str, timeout: int = 30):
+    def __init__(self, api_base: str, api_key: str, timeout: int = 30, proxy_url: str = ""):
         self.api_base = api_base.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
+        self.proxy_url = proxy_url.strip()
 
     @property
     def headers(self) -> dict[str, str]:
@@ -83,7 +84,10 @@ class GuangyaPushApiClient:
 
     async def health(self) -> dict[str, Any]:
         self._check_config()
-        async with httpx.AsyncClient(timeout=15) as client:
+        kwargs: dict[str, Any] = {"timeout": 15}
+        if self.proxy_url:
+            kwargs["proxy"] = self.proxy_url
+        async with httpx.AsyncClient(**kwargs) as client:
             resp = await client.get(
                 f"{self.api_base}/api/external/push/health",
                 headers=self.headers,
@@ -93,7 +97,10 @@ class GuangyaPushApiClient:
 
     async def lease(self, limit: int, retry_stale_minutes: int) -> dict[str, Any]:
         self._check_config()
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        kwargs: dict[str, Any] = {"timeout": self.timeout}
+        if self.proxy_url:
+            kwargs["proxy"] = self.proxy_url
+        async with httpx.AsyncClient(**kwargs) as client:
             resp = await client.post(
                 f"{self.api_base}/api/external/push/lease",
                 headers=self.headers,
@@ -111,7 +118,10 @@ class GuangyaPushApiClient:
         response_payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._check_config()
-        async with httpx.AsyncClient(timeout=15) as client:
+        kwargs: dict[str, Any] = {"timeout": 15}
+        if self.proxy_url:
+            kwargs["proxy"] = self.proxy_url
+        async with httpx.AsyncClient(**kwargs) as client:
             resp = await client.post(
                 f"{self.api_base}/api/external/push/callback",
                 headers=self.headers,

@@ -118,6 +118,8 @@ async def update_config(payload: ConfigPayload, _: str = Depends(require_admin))
         or old_config.push_api_base != config.push_api_base
         or old_config.push_api_key != config.push_api_key
         or old_config.push_chat_id != config.push_chat_id
+        or old_config.proxy_enabled != config.proxy_enabled
+        or old_config.proxy_url != config.proxy_url
     )
     if push_should_restart and push_bot.running():
         await push_bot.restart()

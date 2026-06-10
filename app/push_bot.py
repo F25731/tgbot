@@ -88,7 +88,11 @@ class TelegramPushBot:
         leased = 0
         try:
             cfg = self.store.get()
-            client = GuangyaPushApiClient(cfg.push_api_base, cfg.push_api_key)
+            client = GuangyaPushApiClient(
+                cfg.push_api_base,
+                cfg.push_api_key,
+                proxy_url=self._proxy_url(cfg),
+            )
             lease_data = await client.lease(cfg.push_batch_size, cfg.push_lease_stale_minutes)
             items = lease_data.get("items") or []
             leased = len(items)
@@ -122,6 +126,12 @@ class TelegramPushBot:
 
     # ---------- Telegram API ----------
 
+    @staticmethod
+    def _proxy_url(cfg) -> str:
+        if cfg.proxy_enabled and cfg.proxy_url:
+            return cfg.proxy_url
+        return ""
+
     async def _send_message(self, cfg, text: str) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "chat_id": cfg.push_chat_id,
@@ -131,7 +141,11 @@ class TelegramPushBot:
         if cfg.push_parse_mode:
             payload["parse_mode"] = cfg.push_parse_mode
 
-        async with httpx.AsyncClient(timeout=30) as client:
+        kwargs: dict[str, Any] = {"timeout": 30}
+        proxy_url = self._proxy_url(cfg)
+        if proxy_url:
+            kwargs["proxy"] = proxy_url
+        async with httpx.AsyncClient(**kwargs) as client:
             resp = await client.post(
                 f"https://api.telegram.org/bot{cfg.push_bot_token}/sendMessage",
                 json=payload,
