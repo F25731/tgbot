@@ -123,7 +123,6 @@ class TelegramSearchBot:
             BotCommand("start", "打开菜单"),
             BotCommand("gy", "搜索资源"),
             BotCommand("hot", "热门资源"),
-            BotCommand("status", "查看状态"),
         ]
         try:
             await application.bot.set_my_commands(commands)
