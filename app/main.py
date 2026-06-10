@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 import secrets
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
@@ -13,10 +15,15 @@ from pydantic import BaseModel, Field
 from .bot import TelegramSearchBot
 from .config import ConfigStore
 from .guangya_api import GuangyaApiClient
+from .metrics import EventLogHandler, Metrics
 
 store = ConfigStore()
-bot = TelegramSearchBot(store)
+metrics = Metrics()
+bot = TelegramSearchBot(store, metrics)
 security = HTTPBasic()
+
+logging.getLogger("app").addHandler(EventLogHandler(metrics))
+logging.getLogger("app").setLevel(logging.INFO)
 
 
 def require_admin(credentials: HTTPBasicCredentials = Depends(security)) -> str:
@@ -110,6 +117,7 @@ async def restart_bot(_: str = Depends(require_admin)):
 
 @app.get("/api/health")
 async def health(_: str = Depends(require_admin)):
+    started = time.monotonic()
     try:
         api_health = await GuangyaApiClient(store.get()).health()
         api_ok = True
@@ -118,13 +126,31 @@ async def health(_: str = Depends(require_admin)):
         api_health = {}
         api_ok = False
         api_error = str(exc)
+    latency_ms = int((time.monotonic() - started) * 1000)
+    metrics.record_health(api_ok, latency_ms if api_ok else None, api_health.get("key_name"), api_error)
     return {
         "ok": True,
         "bot_running": bot.running(),
         "guangya_api_ok": api_ok,
         "guangya_api": api_health,
         "guangya_api_error": api_error,
+        "latency_ms": latency_ms,
     }
+
+
+@app.get("/api/stats")
+async def stats(_: str = Depends(require_admin)):
+    return metrics.snapshot(bot.running())
+
+
+@app.get("/api/logs")
+async def logs(
+    after: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=400),
+    _: str = Depends(require_admin),
+):
+    events = metrics.events_after(after_id=after, limit=limit)
+    return {"events": events, "last_event_id": metrics.snapshot(bot.running())["last_event_id"]}
 
 
 @app.middleware("http")

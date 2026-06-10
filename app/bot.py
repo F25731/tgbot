@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, User
 from telegram.error import BadRequest
 from telegram.request import HTTPXRequest
 from telegram.ext import (
@@ -21,6 +21,7 @@ from telegram.ext import (
 
 from .config import ConfigStore, RuntimeConfig
 from .guangya_api import GuangyaApiClient
+from .metrics import Metrics
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +52,9 @@ class SearchSession:
 
 
 class TelegramSearchBot:
-    def __init__(self, store: ConfigStore):
+    def __init__(self, store: ConfigStore, metrics: Metrics):
         self.store = store
+        self.metrics = metrics
         self.application: Application | None = None
         self._task: asyncio.Task | None = None
         self._stop_event: asyncio.Event | None = None
@@ -142,6 +144,7 @@ class TelegramSearchBot:
                 drop_pending_updates=True,
             )
             logger.info("光鸭独立检索 Telegram Bot 已启动")
+            self.metrics.mark_started(self._bot_username)
             if self._stop_event:
                 await self._stop_event.wait()
         except asyncio.CancelledError:
@@ -157,12 +160,26 @@ class TelegramSearchBot:
                 await application.shutdown()
             except Exception:
                 logger.exception("光鸭独立检索 Telegram Bot 停止异常")
+            self.metrics.mark_stopped()
 
     def _config(self) -> RuntimeConfig:
         return self.store.get()
 
     def _api(self) -> GuangyaApiClient:
         return GuangyaApiClient(self._config())
+
+    @staticmethod
+    def _user_fields(user: User | None) -> tuple[int | None, str | None, str | None]:
+        if user is None:
+            return None, None, None
+        return user.id, user.username, user.full_name
+
+    def _record(self, fn, user: User | None, *args) -> None:
+        uid, uname, name = self._user_fields(user)
+        try:
+            fn(uid, uname, name, *args)
+        except Exception:
+            logger.debug("metrics 记录失败", exc_info=True)
 
     def _page_limit(self, already_shown: int = 0) -> int:
         config = self._config()
@@ -254,7 +271,7 @@ class TelegramSearchBot:
                     jump_to = max(1, current - PAGE_JUMP)
                 buttons.append(InlineKeyboardButton("…", callback_data=f"{CALLBACK_JUMP_PREFIX}{jump_to}"))
                 continue
-            label = f"· {page_no} ·" if page_no == current else str(page_no)
+            label = f"✓{page_no}" if page_no == current else str(page_no)
             buttons.append(InlineKeyboardButton(label, callback_data=f"{CALLBACK_PAGE_PREFIX}{page_no}"))
 
         return buttons
@@ -332,13 +349,14 @@ class TelegramSearchBot:
             return InlineKeyboardMarkup([[InlineKeyboardButton("🔗 打开链接", url=link)]])
         return None
 
-    async def _send_detail(self, chat_id: int, resource_id: int, bot) -> None:
+    async def _send_detail(self, chat_id: int, resource_id: int, bot, user: User | None = None) -> None:
         try:
             item = await self._api().detail(resource_id)
         except Exception as exc:
             logger.exception("获取资源详情失败")
             await bot.send_message(chat_id=chat_id, text=f"获取资源详情失败：{exc}")
             return
+        self._record(self.metrics.record_detail, user, resource_id, item.get("name"))
         await bot.send_message(
             chat_id=chat_id,
             text=self._format_detail(item),
@@ -425,7 +443,7 @@ class TelegramSearchBot:
             except ValueError:
                 await message.reply_text("无效的资源链接")
                 return
-            await self._send_detail(chat.id, resource_id, context.bot)
+            await self._send_detail(chat.id, resource_id, context.bot, message.from_user)
             return
         await message.reply_text("发送关键词即可搜索资源，也可以使用 /gy 关键词")
 
@@ -466,11 +484,17 @@ class TelegramSearchBot:
             await self._safe_search(chat.id, keyword, context.bot, message)
 
     async def _safe_search(self, chat_id: int, keyword: str, bot, message) -> None:
+        user = message.from_user if message else None
         try:
             session = await self._create_session(chat_id, keyword, bot)
+            page = session.pages.get(1)
+            result_count = len(page.items) if page else 0
+            has_more = bool(page.has_more) if page else False
+            self._record(self.metrics.record_search, user, keyword, result_count, has_more)
             await self._send_page(chat_id, session, bot)
         except Exception as exc:
             logger.exception("检索失败")
+            self._record(self.metrics.record_error, user, keyword, str(exc))
             await message.reply_text(f"检索失败：{exc}")
 
     async def _callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -499,6 +523,7 @@ class TelegramSearchBot:
                     return
                 session.current_page = target_page
                 session.updated_at = datetime.now(timezone.utc)
+                self._record(self.metrics.record_page, query.from_user, target_page)
                 await self._render_page(
                     chat_id,
                     session,

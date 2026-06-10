@@ -1,638 +1,420 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>光鸭 Telegram 检索机器人 · 管理后台</title>
-    <style>
-      :root {
-        color-scheme: light;
-        --bg: #eef1f6;
-        --sidebar: #0f172a;
-        --sidebar-muted: #94a3b8;
-        --sidebar-active: #1e293b;
-        --panel: #ffffff;
-        --line: #e2e8f0;
-        --text: #0f172a;
-        --muted: #64748b;
-        --primary: #2563eb;
-        --primary-dark: #1d4ed8;
-        --success: #16a34a;
-        --danger: #dc2626;
-        --warn: #d97706;
-        --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
-        --radius: 12px;
-      }
-      * { box-sizing: border-box; }
-      html, body { height: 100%; }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-          "Microsoft YaHei", sans-serif;
-        font-size: 14px;
-        line-height: 1.5;
-      }
-      .app {
-        display: grid;
-        grid-template-columns: 248px minmax(0, 1fr);
-        min-height: 100vh;
-      }
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>光鸭 Telegram 检索机器人 · 管理后台</title>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161921;--panel:#1a1d2b;--panel2:#222638;
+  --border:#2a2d3e;--border2:#353850;
+  --text:#e8eaf0;--text2:#9498ab;--text3:#5c6178;
+  --green:#22c55e;--green2:#16a34a;--gbg:rgba(34,197,94,.1);
+  --red:#ef4444;--rbg:rgba(239,68,68,.1);
+  --blue:#3b82f6;--bbg:rgba(59,130,246,.1);
+  --amber:#f59e0b;--abg:rgba(245,158,11,.1);
+  --purple:#a855f7;--pbg:rgba(168,85,247,.1);
+  --cyan:#06b6d4;--cbg:rgba(6,182,212,.1);
+  --r:10px;--rs:6px;
+  --shadow:0 2px 12px rgba(0,0,0,.3);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono","Fira Code","SF Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh}
+a{color:var(--blue);text-decoration:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
-      /* Sidebar */
-      .sidebar {
-        background: var(--sidebar);
-        color: #e2e8f0;
-        padding: 22px 18px;
-        display: flex;
-        flex-direction: column;
-        gap: 28px;
-        position: sticky;
-        top: 0;
-        height: 100vh;
-      }
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .brand .logo {
-        width: 40px;
-        height: 40px;
-        border-radius: 11px;
-        background: linear-gradient(135deg, #2563eb, #22d3ee);
-        display: grid;
-        place-items: center;
-        font-size: 20px;
-      }
-      .brand .name { font-size: 15px; font-weight: 600; }
-      .brand .sub { font-size: 12px; color: var(--sidebar-muted); }
-      .nav { display: flex; flex-direction: column; gap: 4px; }
-      .nav a {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 9px;
-        color: var(--sidebar-muted);
-        text-decoration: none;
-        font-size: 14px;
-        transition: background 0.15s, color 0.15s;
-      }
-      .nav a:hover { background: var(--sidebar-active); color: #fff; }
-      .nav a.active { background: var(--sidebar-active); color: #fff; }
-      .nav a .ic { width: 18px; text-align: center; }
-      .sidebar .spacer { flex: 1; }
-      .sidebar .foot { font-size: 12px; color: var(--sidebar-muted); }
+/* ===== 侧栏 ===== */
+.shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+@media(max-width:860px){.shell{grid-template-columns:1fr} .sidebar{display:none}}
+.sidebar{
+  background:var(--panel);border-right:1px solid var(--border);
+  padding:24px 16px;display:flex;flex-direction:column;gap:28px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.brand-text .name{font-size:14px;font-weight:700}
+.brand-text .sub{font-size:11px;color:var(--text3)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:8px;
+  color:var(--text2);font-size:13px;transition:all .15s;cursor:pointer;text-decoration:none;
+}
+.nav a:hover{background:var(--panel2);color:var(--text)}
+.nav a.on{background:var(--panel2);color:var(--green);font-weight:600}
+.nav a .ic{width:18px;text-align:center;font-size:14px}
+.sidebar .foot{margin-top:auto;font-size:11px;color:var(--text3);line-height:1.5}
 
-      /* Main */
-      .main { display: flex; flex-direction: column; min-width: 0; }
-      .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        background: rgba(238, 241, 246, 0.85);
-        backdrop-filter: blur(8px);
-        border-bottom: 1px solid var(--line);
-        padding: 16px 28px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-      .topbar h1 { margin: 0; font-size: 18px; font-weight: 600; }
-      .topbar .crumb { font-size: 12px; color: var(--muted); margin-top: 2px; }
-      .topbar .tools { display: flex; align-items: center; gap: 12px; }
+/* ===== 顶栏 ===== */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(15,17,23,.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:54px;
+}
+.topbar h1{font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px}
+.tb-dot{width:8px;height:8px;border-radius:50%;transition:all .3s}
+.tb-dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.tb-dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
+.topbar-r{display:flex;align-items:center;gap:14px}
+.uptime{font-size:11px;color:var(--text3);font-family:var(--mono)}
 
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 5px 11px;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 500;
-        border: 1px solid var(--line);
-        background: #fff;
-      }
-      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-      .dot.on { background: var(--success); box-shadow: 0 0 0 3px rgba(22,163,74,.15); }
-      .dot.off { background: var(--danger); box-shadow: 0 0 0 3px rgba(220,38,38,.12); }
-      .dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(217,119,6,.15); }
+/* ===== 内容 ===== */
+.content{padding:24px 28px 48px}
+@media(max-width:640px){.content{padding:16px} .topbar{padding:0 16px}}
+.page{display:none}.page.on{display:block}
 
-      .content { padding: 24px 28px 40px; }
-      .wrap { width: min(1080px, 100%); margin: 0 auto; }
+/* ===== 统计卡片 ===== */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px}
+.card{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 18px;transition:border-color .2s;
+}
+.card:hover{border-color:var(--border2)}
+.card .k{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.card .v{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.card .d{font-size:11px;color:var(--text3);margin-top:3px}
+.card.green .v{color:var(--green)} .card.blue .v{color:var(--blue)}
+.card.purple .v{color:var(--purple)} .card.amber .v{color:var(--amber)}
+.card.red .v{color:var(--red)} .card.cyan .v{color:var(--cyan)}
 
-      /* Stat cards */
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
-        margin-bottom: 22px;
-      }
-      .stat {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 16px 18px;
-        box-shadow: var(--shadow);
-      }
-      .stat .k { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
-      .stat .v { font-size: 20px; font-weight: 600; margin-top: 8px; }
+/* ===== 两列 ===== */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
 
-      .layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 320px;
-        gap: 20px;
-        align-items: start;
-      }
-      .card {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        overflow: hidden;
-      }
-      .card > .hd {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--line);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .card > .hd h2 { margin: 0; font-size: 15px; font-weight: 600; }
-      .card > .hd .desc { font-size: 12px; color: var(--muted); }
-      .card > .bd { padding: 20px; }
+/* ===== 面板 ===== */
+.pnl{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.pnl-h{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pnl-h h2{font-size:13px;font-weight:600}
+.pnl-b{padding:16px 18px}
 
-      form { display: grid; gap: 22px; }
-      fieldset {
-        border: 0;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        gap: 14px;
-      }
-      legend {
-        padding: 0;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text);
-        margin-bottom: 2px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      legend::before {
-        content: "";
-        width: 3px;
-        height: 14px;
-        border-radius: 2px;
-        background: var(--primary);
-        display: inline-block;
-      }
-      label.field {
-        display: grid;
-        gap: 6px;
-        font-size: 13px;
-        color: var(--muted);
-      }
-      label.field .req { color: var(--danger); }
-      input, select {
-        width: 100%;
-        height: 40px;
-        border: 1px solid var(--line);
-        border-radius: 9px;
-        padding: 8px 12px;
-        color: var(--text);
-        background: #fff;
-        font-size: 14px;
-        transition: border-color 0.15s, box-shadow 0.15s;
-      }
-      input:focus, select:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-      }
-      .hint { font-size: 12px; color: var(--muted); }
-      .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+/* ===== 热门关键词 ===== */
+.kw{list-style:none}
+.kw li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.kw li:last-child{border-bottom:none}
+.kw-n{width:20px;height:20px;border-radius:4px;display:grid;place-items:center;font-size:10px;font-weight:700;background:var(--panel2);color:var(--text3);flex-shrink:0}
+.kw-n.hot{background:var(--gbg);color:var(--green)}
+.kw-t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.kw-bar{width:56px;height:3px;background:var(--panel2);border-radius:2px;overflow:hidden}
+.kw-bar i{display:block;height:100%;background:var(--green);border-radius:2px;transition:width .4s}
+.kw-c{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+.kw-empty{color:var(--text3);text-align:center;padding:28px 0;font-size:13px}
 
-      .switch {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 14px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: #f8fafc;
-      }
-      .switch .t { font-size: 14px; color: var(--text); font-weight: 500; }
-      .switch .s { font-size: 12px; color: var(--muted); }
-      .toggle { position: relative; width: 44px; height: 26px; flex: none; }
-      .toggle input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-      .toggle .track {
-        position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px;
-        transition: background 0.18s;
-      }
-      .toggle .track::after {
-        content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
-        background: #fff; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,.2);
-        transition: transform 0.18s;
-      }
-      .toggle input:checked + .track { background: var(--primary); }
-      .toggle input:checked + .track::after { transform: translateX(18px); }
+/* ===== 系统状态面板 ===== */
+.srow{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)}
+.srow:last-child{border-bottom:none}
+.srow .l{color:var(--text3);min-width:70px}
+.srow .r{color:var(--text);font-weight:500}
+.hdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hdot.ok{background:var(--green)}.hdot.fail{background:var(--red)}.hdot.unk{background:var(--text3)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding-top: 6px;
-        border-top: 1px dashed var(--line);
-        margin-top: 2px;
-      }
-      button {
-        border: 1px solid transparent;
-        border-radius: 9px;
-        height: 40px;
-        padding: 0 16px;
-        cursor: pointer;
-        color: #fff;
-        background: var(--primary);
-        font-size: 14px;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        transition: background 0.15s, opacity 0.15s;
-      }
-      button:hover { background: var(--primary-dark); }
-      button:disabled { opacity: 0.6; cursor: not-allowed; }
-      button.ghost { color: var(--text); background: #fff; border-color: var(--line); }
-      button.ghost:hover { background: #f1f5f9; }
-      button.danger { background: var(--danger); }
-      button.danger:hover { background: #b91c1c; }
+/* ===== 实时日志 ===== */
+.log-box{height:440px;overflow-y:auto;font-size:12px;font-family:var(--mono);padding:10px 14px;background:var(--bg2)}
+.log-line{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid rgba(42,45,62,.25);animation:fin .25s}
+@keyframes fin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.log-ts{color:var(--text3);white-space:nowrap;flex-shrink:0}
+.log-b{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;white-space:nowrap;flex-shrink:0;text-transform:uppercase}
+.log-b.info{background:var(--bbg);color:var(--blue)}
+.log-b.success{background:var(--gbg);color:var(--green)}
+.log-b.warn{background:var(--abg);color:var(--amber)}
+.log-b.error{background:var(--rbg);color:var(--red)}
+.log-a{color:var(--text2);white-space:nowrap;flex-shrink:0}
+.log-t{color:var(--text);word-break:break-all}
+.log-empty{color:var(--text3);text-align:center;padding:60px 0;font-family:var(--font);font-size:13px}
+.log-ctrl{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text3)}
+.log-ctrl label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.log-ctrl input[type=checkbox]{accent-color:var(--green)}
 
-      /* Status panel */
-      .statuslist { display: grid; gap: 2px; }
-      .statuslist .item {
-        display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        padding: 11px 2px; border-bottom: 1px solid var(--line); font-size: 13px;
-      }
-      .statuslist .item:last-child { border-bottom: 0; }
-      .statuslist .item span { color: var(--muted); }
-      .statuslist .item strong { color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+/* ===== 配置表单 ===== */
+.fg{display:grid;gap:18px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.fr{grid-template-columns:1fr}}
+.fd{display:flex;flex-direction:column;gap:5px}
+.fd>span{font-size:12px;color:var(--text2);font-weight:500}
+.fd input{
+  height:36px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);
+  padding:0 10px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .2s;
+}
+.fd input:focus{border-color:var(--green)}
+.fd .h{font-size:11px;color:var(--text3)}
+.sep{border-top:1px solid var(--border);padding-top:16px;margin-top:4px}
+.sep-label{font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sep-label::before{content:'';width:3px;height:12px;border-radius:2px;background:var(--green)}
+.sw{display:flex;align-items:center;justify-content:space-between;padding:5px 0}
+.sw>span{font-size:13px;color:var(--text2)}
+.tg{position:relative;width:38px;height:20px;cursor:pointer}
+.tg input{opacity:0;width:0;height:0;position:absolute}
+.tg .sl{position:absolute;inset:0;background:var(--border2);border-radius:10px;transition:.2s}
+.tg .sl::before{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s}
+.tg input:checked+.sl{background:var(--green)}
+.tg input:checked+.sl::before{transform:translateX(18px)}
 
-      /* Toast */
-      .toast {
-        position: fixed;
-        right: 22px;
-        bottom: 22px;
-        background: var(--text);
-        color: #fff;
-        padding: 12px 16px;
-        border-radius: 10px;
-        font-size: 14px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
-        opacity: 0;
-        transform: translateY(8px);
-        transition: opacity 0.2s, transform 0.2s;
-        pointer-events: none;
-        max-width: 360px;
-        z-index: 50;
-      }
-      .toast.show { opacity: 1; transform: translateY(0); }
-      .toast.err { background: var(--danger); }
+/* ===== 按钮 ===== */
+.btn{
+  height:34px;padding:0 16px;border:none;border-radius:var(--rs);
+  font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);
+  display:inline-flex;align-items:center;gap:5px;transition:all .15s;
+}
+.btn-g{background:var(--green);color:#fff}.btn-g:hover{background:var(--green2)}
+.btn-s{background:var(--panel2);color:var(--text);border:1px solid var(--border)}.btn-s:hover{background:var(--border)}
+.btn-d{background:var(--rbg);color:var(--red)}.btn-d:hover{background:rgba(239,68,68,.18)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 
-      @media (max-width: 960px) {
-        .app { grid-template-columns: 1fr; }
-        .sidebar {
-          position: static; height: auto; flex-direction: row; align-items: center;
-          gap: 16px; padding: 14px 18px;
-        }
-        .sidebar .nav, .sidebar .spacer, .sidebar .foot { display: none; }
-        .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .layout { grid-template-columns: 1fr; }
-        .row2 { grid-template-columns: 1fr; }
-        .content { padding: 18px 16px 32px; }
-        .topbar { padding: 14px 16px; }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="app">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="logo">🦆</div>
-          <div>
-            <div class="name">光鸭检索</div>
-            <div class="sub">Telegram Bot 管理</div>
-          </div>
-        </div>
-        <nav class="nav">
-          <a href="#dashboard" class="active"><span class="ic">📊</span> 概览</a>
-          <a href="#config"><span class="ic">⚙️</span> 运行配置</a>
-          <a href="#status"><span class="ic">📡</span> 运行状态</a>
-        </nav>
-        <div class="spacer"></div>
-        <div class="foot">配置保存于<br />data/config.json</div>
-      </aside>
+/* ===== Toast ===== */
+.toast-c{position:fixed;top:62px;right:24px;z-index:999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{
+  pointer-events:auto;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:var(--rs);padding:10px 14px;font-size:13px;box-shadow:var(--shadow);
+  animation:tIn .25s;min-width:180px;
+}
+.toast.ok{border-left:3px solid var(--green)}.toast.err{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--blue)}
+@keyframes tIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="shell">
 
-      <div class="main">
-        <header class="topbar">
-          <div>
-            <h1>检索机器人控制台</h1>
-            <div class="crumb">运行配置 · 状态监控</div>
-          </div>
-          <div class="tools">
-            <span class="badge"><span class="dot" id="topDot"></span><span id="topStatus">检测中…</span></span>
-            <button class="ghost" type="button" id="refreshBtn">刷新</button>
-          </div>
-        </header>
+<!-- 侧栏 -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">&#x1F986;</div>
+    <div class="brand-text"><div class="name">光鸭检索</div><div class="sub">Telegram Bot 管理</div></div>
+  </div>
+  <nav class="nav" id="sideNav">
+    <a data-p="dashboard" class="on"><span class="ic">&#x1F4CA;</span>仪表盘</a>
+    <a data-p="config"><span class="ic">&#x2699;&#xFE0F;</span>运行配置</a>
+    <a data-p="logs"><span class="ic">&#x1F4DD;</span>实时日志</a>
+  </nav>
+  <div class="foot">配置持久化于<br/>data/config.json<br/>统计持久化于<br/>data/metrics.json</div>
+</aside>
 
-        <div class="content">
-          <div class="wrap">
-            <section class="stats" id="dashboard">
-              <div class="stat">
-                <div class="k"><span class="dot" id="s_bot_dot"></span> Bot 运行</div>
-                <div class="v" id="bot_running">-</div>
-              </div>
-              <div class="stat">
-                <div class="k"><span class="dot" id="s_api_dot"></span> 光鸭 API</div>
-                <div class="v" id="guangya_api_ok">-</div>
-              </div>
-              <div class="stat">
-                <div class="k">每页显示</div>
-                <div class="v" id="page_size_label">-</div>
-              </div>
-              <div class="stat">
-                <div class="k">最多显示</div>
-                <div class="v" id="max_results_label">-</div>
-              </div>
-            </section>
+<!-- 主体 -->
+<div>
+<div class="topbar">
+  <h1><span class="tb-dot off" id="tbDot"></span>光鸭 Telegram 检索机器人</h1>
+  <div class="topbar-r"><span class="uptime" id="uptime"></span></div>
+</div>
 
-            <div class="layout">
-              <section class="card" id="config">
-                <div class="hd">
-                  <h2>运行配置</h2>
-                  <span class="desc">敏感项留空表示不修改</span>
-                </div>
-                <div class="bd">
-                  <form id="configForm">
-                    <fieldset>
-                      <legend>接口配置</legend>
-                      <label class="field">
-                        Telegram Bot Token
-                        <input id="telegram_bot_token" name="telegram_bot_token" autocomplete="off" placeholder="留空表示不修改已有 token" />
-                        <span class="hint">从 @BotFather 获取，修改后会自动重启 Bot。</span>
-                      </label>
-                      <label class="field">
-                        光鸭 API 地址
-                        <input id="guangya_api_base" name="guangya_api_base" placeholder="http://host.docker.internal:8000" />
-                      </label>
-                      <label class="field">
-                        光鸭 API Key
-                        <input id="guangya_api_key" name="guangya_api_key" autocomplete="off" placeholder="留空表示不修改已有 key" />
-                        <span class="hint">需具备 search:read 权限的密钥。</span>
-                      </label>
-                    </fieldset>
+<div class="toast-c" id="toastC"></div>
 
-                    <fieldset>
-                      <legend>检索显示</legend>
-                      <div class="row2">
-                        <label class="field">
-                          每页显示数量
-                          <input id="page_size" name="page_size" type="number" min="1" max="50" step="1" />
-                        </label>
-                        <label class="field">
-                          最多显示数量
-                          <input id="max_results" name="max_results" type="number" min="0" step="1" />
-                          <span class="hint">0 表示不限。</span>
-                        </label>
-                      </div>
-                      <div class="row2">
-                        <label class="field">
-                          状态过滤
-                          <input id="status" name="status" placeholder="留空为全部" />
-                        </label>
-                        <label class="field">
-                          请求超时（秒）
-                          <input id="request_timeout_seconds" name="request_timeout_seconds" type="number" min="3" max="120" step="1" />
-                        </label>
-                      </div>
-                      <div class="switch">
-                        <div>
-                          <div class="t">启用 Bot</div>
-                          <div class="s">关闭后保存不会自动拉起 Bot</div>
-                        </div>
-                        <span class="toggle"><input id="bot_enabled" name="bot_enabled" type="checkbox" /><span class="track"></span></span>
-                      </div>
-                    </fieldset>
+<div class="content">
 
-                    <fieldset>
-                      <legend>Telegram 代理</legend>
-                      <div class="switch">
-                        <div>
-                          <div class="t">启用代理</div>
-                          <div class="s">支持 http:// 与 socks5://</div>
-                        </div>
-                        <span class="toggle"><input id="proxy_enabled" name="proxy_enabled" type="checkbox" /><span class="track"></span></span>
-                      </div>
-                      <label class="field">
-                        代理地址
-                        <input id="proxy_url" name="proxy_url" autocomplete="off" placeholder="留空表示不修改，例：socks5://user:pass@ip:port" />
-                      </label>
-                    </fieldset>
-
-                    <fieldset>
-                      <legend>后台账号</legend>
-                      <div class="row2">
-                        <label class="field">
-                          用户名
-                          <input id="web_username" name="web_username" />
-                        </label>
-                        <label class="field">
-                          密码
-                          <input id="web_password" name="web_password" type="password" placeholder="留空表示不修改" />
-                        </label>
-                      </div>
-                      <span class="hint">修改后台账号后，下次请求需用新账号登录。</span>
-                    </fieldset>
-
-                    <div class="actions">
-                      <button type="submit" id="saveBtn">💾 保存配置</button>
-                      <button class="ghost" type="button" id="startBtn">▶ 启动</button>
-                      <button class="ghost" type="button" id="restartBtn">↻ 重启</button>
-                      <button class="danger" type="button" id="stopBtn">■ 停止</button>
-                    </div>
-                  </form>
-                </div>
-              </section>
-
-              <aside class="card" id="status">
-                <div class="hd"><h2>运行状态</h2></div>
-                <div class="bd">
-                  <div class="statuslist">
-                    <div class="item"><span>Bot</span><strong id="st_bot"><span class="dot"></span>-</strong></div>
-                    <div class="item"><span>Telegram Token</span><strong id="telegram_bot_token_set">-</strong></div>
-                    <div class="item"><span>API Key</span><strong id="guangya_api_key_set">-</strong></div>
-                    <div class="item"><span>光鸭 API</span><strong id="st_api"><span class="dot"></span>-</strong></div>
-                    <div class="item"><span>代理</span><strong id="proxy_label">-</strong></div>
-                    <div class="item"><span>每页 / 最多</span><strong id="pm_label">-</strong></div>
-                  </div>
-                </div>
-              </aside>
-            </div>
-          </div>
+<!-- ==================== 仪表盘 ==================== -->
+<div class="page on" id="p-dashboard">
+<div class="cards">
+  <div class="card green"><div class="k">Bot 状态</div><div class="v" id="c_bot">-</div><div class="d" id="c_bot_d"></div></div>
+  <div class="card blue"><div class="k">今日搜索</div><div class="v" id="c_ts">0</div><div class="d" id="c_ts_d"></div></div>
+  <div class="card purple"><div class="k">今日用户</div><div class="v" id="c_tu">0</div><div class="d">今日独立用户</div></div>
+  <div class="card cyan"><div class="k">累计搜索</div><div class="v" id="c_as">0</div><div class="d" id="c_as_d"></div></div>
+  <div class="card amber"><div class="k">累计用户</div><div class="v" id="c_au">0</div><div class="d">全部独立用户</div></div>
+  <div class="card red"><div class="k">累计错误</div><div class="v" id="c_ae">0</div><div class="d" id="c_ae_d"></div></div>
+</div>
+<div class="cols">
+  <!-- 热门关键词 -->
+  <div class="pnl">
+    <div class="pnl-h"><h2>热门关键词 TOP 10</h2></div>
+    <div class="pnl-b"><ul class="kw" id="kwList"><li class="kw-empty">暂无数据</li></ul></div>
+  </div>
+  <!-- 系统状态 -->
+  <div class="pnl">
+    <div class="pnl-h"><h2>系统状态</h2></div>
+    <div class="pnl-b" style="display:grid;gap:14px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">光鸭 API</div>
+        <div class="srow" id="hRow"><span class="hdot unk"></span><span class="r">检测中...</span></div>
+        <div id="hDetail" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Bot 控制</div>
+        <div class="btn-row">
+          <button class="btn btn-g" onclick="botAct('start')">启动</button>
+          <button class="btn btn-s" onclick="botAct('restart')">重启</button>
+          <button class="btn btn-d" onclick="botAct('stop')">停止</button>
         </div>
       </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">详细统计</div>
+        <div id="extraS" style="display:grid;gap:3px;font-size:12px;color:var(--text2)"></div>
+      </div>
     </div>
+  </div>
+</div>
+</div>
 
-    <div class="toast" id="toast"></div>
+<!-- ==================== 运行配置 ==================== -->
+<div class="page" id="p-config">
+<div class="pnl" style="max-width:720px">
+  <div class="pnl-h"><h2>运行配置</h2><span style="font-size:11px;color:var(--text3)">敏感项留空不修改</span></div>
+  <div class="pnl-b">
+    <form id="cfgForm" class="fg" autocomplete="off">
+      <div class="sep-label">接口配置</div>
+      <div class="fd"><span>Telegram Bot Token</span><input id="telegram_bot_token" name="telegram_bot_token" placeholder="留空不修改"/><div class="h" id="tkH"></div></div>
+      <div class="fr">
+        <div class="fd"><span>光鸭 API 地址</span><input id="guangya_api_base" name="guangya_api_base" placeholder="http://host.docker.internal:8000"/></div>
+        <div class="fd"><span>光鸭 API Key</span><input id="guangya_api_key" name="guangya_api_key" placeholder="留空不修改"/><div class="h" id="akH"></div></div>
+      </div>
 
-    <script>
-      const toast = document.getElementById("toast");
-      const fields = [
-        "guangya_api_base",
-        "page_size",
-        "max_results",
-        "status",
-        "request_timeout_seconds",
-        "bot_enabled",
-        "proxy_enabled",
-        "web_username",
-      ];
+      <div class="sep"><div class="sep-label">检索显示</div></div>
+      <div class="fr">
+        <div class="fd"><span>每页显示数量</span><input id="page_size" name="page_size" type="number" min="1" max="50"/></div>
+        <div class="fd"><span>最多显示数量</span><input id="max_results" name="max_results" type="number" min="0"/><div class="h">0 = 不限</div></div>
+      </div>
+      <div class="fr">
+        <div class="fd"><span>状态过滤</span><input id="status" name="status" placeholder="留空表示全部"/></div>
+        <div class="fd"><span>请求超时(秒)</span><input id="request_timeout_seconds" name="request_timeout_seconds" type="number" min="3" max="120"/></div>
+      </div>
 
-      function show(message, isError = false) {
-        toast.textContent = message;
-        toast.classList.toggle("err", isError);
-        toast.classList.add("show");
-        clearTimeout(window.__toastTimer);
-        window.__toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
-      }
+      <div class="sep"><div class="sep-label">开关</div></div>
+      <div class="sw"><span>Bot 启用</span><label class="tg"><input type="checkbox" id="bot_enabled" name="bot_enabled"/><span class="sl"></span></label></div>
+      <div class="sw"><span>Telegram 代理</span><label class="tg"><input type="checkbox" id="proxy_enabled" name="proxy_enabled"/><span class="sl"></span></label></div>
+      <div class="fd"><span>代理地址</span><input id="proxy_url" name="proxy_url" placeholder="留空不修改，支持 http:// / socks5://"/><div class="h" id="pxH"></div></div>
 
-      async function api(path, options = {}) {
-        const res = await fetch(path, {
-          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-          ...options,
-        });
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
-      }
+      <div class="sep"><div class="sep-label">后台登录</div></div>
+      <div class="fr">
+        <div class="fd"><span>用户名</span><input id="web_username" name="web_username"/></div>
+        <div class="fd"><span>密码</span><input id="web_password" name="web_password" type="password" placeholder="留空不修改"/></div>
+      </div>
 
-      function yesNo(value) {
-        return value ? "是" : "否";
-      }
+      <div class="btn-row" style="margin-top:8px">
+        <button type="submit" class="btn btn-g">保存配置</button>
+        <button type="button" class="btn btn-s" onclick="loadCfg()">重新加载</button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
 
-      function setDot(el, state) {
-        // state: 'on' | 'off' | 'warn' | ''
-        if (!el) return;
-        el.className = "dot" + (state ? " " + state : "");
-      }
+<!-- ==================== 实时日志 ==================== -->
+<div class="page" id="p-logs">
+<div class="pnl">
+  <div class="pnl-h">
+    <h2>实时日志</h2>
+    <div class="log-ctrl">
+      <label><input type="checkbox" id="autoScr" checked/> 自动滚动</label>
+      <button class="btn btn-s" style="height:26px;font-size:10px" onclick="clearLog()">清空</button>
+    </div>
+  </div>
+  <div class="log-box" id="logBox"><div class="log-empty" id="logE">等待日志...</div></div>
+</div>
+</div>
 
-      function applyConfig(data) {
-        for (const id of fields) {
-          const el = document.getElementById(id);
-          if (!el) continue;
-          if (el.type === "checkbox") el.checked = Boolean(data[id]);
-          else el.value = data[id] ?? "";
-        }
-        document.getElementById("telegram_bot_token").value = "";
-        document.getElementById("guangya_api_key").value = "";
-        document.getElementById("proxy_url").value = "";
-        document.getElementById("web_password").value = "";
+</div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
 
-        const running = Boolean(data.bot_running);
-        document.getElementById("bot_running").textContent = running ? "运行中" : "未运行";
-        setDot(document.getElementById("s_bot_dot"), running ? "on" : "off");
-        document.getElementById("st_bot").innerHTML =
-          `<span class="dot ${running ? "on" : "off"}"></span>${running ? "运行中" : "未运行"}`;
-        document.getElementById("topStatus").textContent = running ? "Bot 运行中" : "Bot 未运行";
-        setDot(document.getElementById("topDot"), running ? "on" : "off");
+<script>
+const $=s=>document.getElementById(s);
+const FIELDS=["guangya_api_base","page_size","max_results","status","request_timeout_seconds","bot_enabled","proxy_enabled","web_username"];
+let lastEid=0,logT=null,statsT=null,upT=null,upBase=0,upOn=false;
 
-        document.getElementById("telegram_bot_token_set").textContent = yesNo(data.telegram_bot_token_set);
-        document.getElementById("guangya_api_key_set").textContent = yesNo(data.guangya_api_key_set);
+/* ===== toast ===== */
+function toast(m,t="info"){const e=document.createElement("div");e.className="toast "+t;e.textContent=m;$("toastC").appendChild(e);setTimeout(()=>{e.style.opacity="0";e.style.transition="opacity .3s";setTimeout(()=>e.remove(),300)},3200)}
 
-        const proxyText = data.proxy_enabled
-          ? (data.proxy_url_set ? "已启用" : "已启用但未配置")
-          : "关闭";
-        document.getElementById("proxy_label").textContent = proxyText;
+/* ===== api ===== */
+async function api(p,o={}){const r=await fetch(p,{headers:{"Content-Type":"application/json",...(o.headers||{})},...o});if(!r.ok)throw new Error(await r.text());return r.json()}
 
-        document.getElementById("page_size_label").textContent = data.page_size;
-        const maxText = data.max_results === 0 ? "不限" : data.max_results;
-        document.getElementById("max_results_label").textContent = maxText;
-        document.getElementById("pm_label").textContent = `${data.page_size} / ${maxText}`;
-      }
+/* ===== nav ===== */
+$("sideNav").addEventListener("click",e=>{const a=e.target.closest("a[data-p]");if(!a)return;document.querySelectorAll("#sideNav a").forEach(x=>x.classList.remove("on"));a.classList.add("on");document.querySelectorAll(".page").forEach(x=>x.classList.remove("on"));const pg=$("p-"+a.dataset.p);if(pg)pg.classList.add("on")});
 
-      function applyHealth(health) {
-        const ok = health && health.guangya_api_ok;
-        const el = document.getElementById("guangya_api_ok");
-        el.textContent = ok ? "正常" : "异常";
-        setDot(document.getElementById("s_api_dot"), ok ? "on" : "off");
-        document.getElementById("st_api").innerHTML =
-          `<span class="dot ${ok ? "on" : "off"}"></span>${ok ? "正常" : "异常"}`;
-      }
+/* ===== uptime ===== */
+function startUp(s){upBase=s;upOn=true;clearInterval(upT);const t0=Date.now()/1000;upT=setInterval(()=>{if(!upOn)return;const s=Math.floor(upBase+Date.now()/1000-t0),h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;$("uptime").textContent=`${h}h ${m}m ${sec}s`},1000)}
+function stopUp(){upOn=false;clearInterval(upT);$("uptime").textContent=""}
 
-      async function load() {
-        const config = await api("/api/config");
-        applyConfig(config);
-        try {
-          const health = await api("/api/health");
-          applyHealth(health);
-        } catch {
-          document.getElementById("guangya_api_ok").textContent = "未知";
-          setDot(document.getElementById("s_api_dot"), "warn");
-          document.getElementById("st_api").innerHTML = `<span class="dot warn"></span>未知`;
-        }
-      }
+/* ===== esc ===== */
+function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
 
-      document.getElementById("configForm").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const btn = document.getElementById("saveBtn");
-        btn.disabled = true;
-        try {
-          const body = {};
-          for (const el of event.currentTarget.elements) {
-            if (!el.name) continue;
-            if (el.type === "checkbox") body[el.name] = el.checked;
-            else if (["page_size", "max_results", "request_timeout_seconds"].includes(el.name)) body[el.name] = Number(el.value);
-            else if (["telegram_bot_token", "guangya_api_key", "proxy_url", "web_password"].includes(el.name)) {
-              if (el.value !== "") body[el.name] = el.value;
-            } else body[el.name] = el.value;
-          }
-          const data = await api("/api/config", { method: "PUT", body: JSON.stringify(body) });
-          applyConfig(data);
-          show("配置已保存");
-        } catch (err) {
-          show(err.message || "保存失败", true);
-        } finally {
-          btn.disabled = false;
-        }
-      });
+/* ===== stats ===== */
+async function loadStats(){
+  try{
+    const d=await api("/api/stats"),r=d.bot_running;
+    /* 顶栏 */
+    $("tbDot").className="tb-dot "+(r?"on":"off");
+    /* 卡片 */
+    $("c_bot").textContent=r?"运行中":"已停止";
+    document.querySelector(".card.green").className="card "+(r?"green":"red");
+    if(r&&d.uptime_seconds>0){startUp(d.uptime_seconds);const h=Math.floor(d.uptime_seconds/3600),m=Math.floor(d.uptime_seconds%3600/60);$("c_bot_d").textContent=`已运行 ${h}h ${m}m`}
+    else{stopUp();$("c_bot_d").textContent=""}
+    $("c_ts").textContent=d.today.searches;$("c_ts_d").textContent=d.today.date;
+    $("c_tu").textContent=d.today.users;
+    $("c_as").textContent=d.totals.searches;$("c_as_d").textContent=`详情 ${d.totals.details} · 翻页 ${d.totals.pages}`;
+    $("c_au").textContent=d.totals.users;
+    $("c_ae").textContent=d.totals.errors;$("c_ae_d").textContent=`API 调用 ${d.totals.api_calls}`;
+    /* 热门关键词 */
+    const kl=$("kwList");
+    if(d.keywords&&d.keywords.length){const mx=d.keywords[0].count||1;kl.innerHTML=d.keywords.map((k,i)=>`<li><span class="kw-n ${i<3?'hot':''}">${i+1}</span><span class="kw-t">${esc(k.keyword)}</span><span class="kw-bar"><i style="width:${Math.round(k.count/mx*100)}%"></i></span><span class="kw-c">${k.count}</span></li>`).join("")}
+    else kl.innerHTML='<li class="kw-empty">暂无数据</li>';
+    /* 额外统计 */
+    const ex=[];
+    if(d.health){const h=d.health;ex.push(`API 延迟: ${h.latency_ms!=null?h.latency_ms+'ms':'-'}`);if(h.key_name)ex.push(`API Key: ${h.key_name}`)}
+    ex.push(`最后事件 ID: ${d.last_event_id}`);
+    $("extraS").innerHTML=ex.map(t=>`<div>${esc(t)}</div>`).join("");
+    lastEid=d.last_event_id||lastEid;
+  }catch(e){console.error("stats",e)}
+}
 
-      async function botAction(path) {
-        try {
-          const data = await api(path, { method: "POST" });
-          show(data.message || "操作完成");
-          await load();
-        } catch (err) {
-          show(err.message || "操作失败", true);
-        }
-      }
+/* ===== health ===== */
+async function loadHealth(){
+  try{
+    const d=await api("/api/health"),ok=d.guangya_api_ok;
+    $("hRow").innerHTML=`<span class="hdot ${ok?'ok':'fail'}"></span><span class="r">${ok?'连接正常':'连接异常'}</span>`;
+    $("hDetail").textContent=ok?`延迟 ${d.latency_ms}ms · Key: ${d.guangya_api?.key_name||'-'}`:(d.guangya_api_error||'未知错误');
+    if(!ok)$("hDetail").style.color="var(--red)";else $("hDetail").style.color="var(--text3)";
+  }catch(e){$("hRow").innerHTML='<span class="hdot fail"></span><span class="r">检测失败</span>';$("hDetail").textContent=e.message;$("hDetail").style.color="var(--red)"}
+}
 
-      document.getElementById("restartBtn").onclick = () => botAction("/api/bot/restart");
-      document.getElementById("startBtn").onclick = () => botAction("/api/bot/start");
-      document.getElementById("stopBtn").onclick = () => botAction("/api/bot/stop");
-      document.getElementById("refreshBtn").onclick = () => load().catch((err) => show(err.message || "加载失败", true));
+/* ===== config ===== */
+async function loadCfg(){
+  try{
+    const d=await api("/api/config");
+    FIELDS.forEach(id=>{const el=$(id);if(!el)return;el.type==="checkbox"?el.checked=!!d[id]:el.value=d[id]??""});
+    $("telegram_bot_token").value="";$("guangya_api_key").value="";$("proxy_url").value="";$("web_password").value="";
+    $("tkH").textContent=d.telegram_bot_token_set?"已配置 Token":"未配置";
+    $("akH").textContent=d.guangya_api_key_set?"已配置 Key":"未配置";
+    $("pxH").textContent=d.proxy_url_set?"已配置代理":"未配置";
+  }catch(e){toast("加载配置失败: "+e.message,"err")}
+}
+$("cfgForm").addEventListener("submit",async e=>{
+  e.preventDefault();const body={};
+  for(const el of e.currentTarget.elements){if(!el.name)continue;
+    if(el.type==="checkbox")body[el.name]=el.checked;
+    else if(["page_size","max_results","request_timeout_seconds"].includes(el.name))body[el.name]=Number(el.value);
+    else if(["telegram_bot_token","guangya_api_key","proxy_url","web_password"].includes(el.name)){if(el.value!=="")body[el.name]=el.value}
+    else body[el.name]=el.value}
+  try{await api("/api/config",{method:"PUT",body:JSON.stringify(body)});toast("配置已保存","ok");loadCfg();loadStats()}
+  catch(e){toast("保存失败: "+e.message,"err")}
+});
 
-      for (const a of document.querySelectorAll(".nav a")) {
-        a.addEventListener("click", () => {
-          document.querySelectorAll(".nav a").forEach((n) => n.classList.remove("active"));
-          a.classList.add("active");
-        });
-      }
+/* ===== bot action ===== */
+async function botAct(a){try{const d=await api(`/api/bot/${a}`,{method:"POST"});toast(d.message,"ok");setTimeout(()=>{loadStats();loadHealth()},800)}catch(e){toast("操作失败: "+e.message,"err")}}
 
-      load().catch((err) => show(err.message || "加载失败", true));
-    </script>
-  </body>
+/* ===== logs ===== */
+function fmtTs(iso){try{return new Date(iso).toLocaleTimeString("zh-CN",{hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"})}catch{return iso}}
+function addLog(ev){
+  const em=$("logE");if(em)em.remove();
+  const box=$("logBox"),el=document.createElement("div");el.className="log-line";
+  el.innerHTML=`<span class="log-ts">${esc(fmtTs(ev.ts))}</span><span class="log-b ${ev.level}">${esc(ev.level)}</span><span class="log-a">${esc(ev.action)}</span><span class="log-t">${esc(ev.text)}</span>`;
+  box.appendChild(el);
+  while(box.children.length>600)box.removeChild(box.firstChild);
+  if($("autoScr").checked)box.scrollTop=box.scrollHeight;
+}
+async function pollLog(){try{const d=await api(`/api/logs?after=${lastEid}&limit=100`);if(d.events)d.events.forEach(e=>{addLog(e);lastEid=Math.max(lastEid,e.id)})}catch(e){console.error("log poll",e)}}
+function clearLog(){$("logBox").innerHTML='<div class="log-empty" id="logE">日志已清空</div>'}
+
+/* ===== init ===== */
+async function init(){
+  await Promise.all([loadStats(),loadHealth(),loadCfg()]);
+  await pollLog();
+  logT=setInterval(pollLog,3000);
+  statsT=setInterval(()=>{loadStats();loadHealth()},15000);
+}
+init().catch(e=>toast("初始化失败: "+e.message,"err"));
+</script>
+</body>
 </html>
