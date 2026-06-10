@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>光鸭 Telegram 检索机器人 · 管理后台</title>
+<title>光鸭 Telegram Bot · 管理后台</title>
 <style>
 :root{
   --bg:#0f1117;--bg2:#161921;--panel:#1a1d2b;--panel2:#222638;
@@ -15,6 +15,7 @@
   --amber:#f59e0b;--abg:rgba(245,158,11,.1);
   --purple:#a855f7;--pbg:rgba(168,85,247,.1);
   --cyan:#06b6d4;--cbg:rgba(6,182,212,.1);
+  --orange:#f97316;--obg:rgba(249,115,22,.1);
   --r:10px;--rs:6px;
   --shadow:0 2px 12px rgba(0,0,0,.3);
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
@@ -40,6 +41,7 @@ a{color:var(--blue);text-decoration:none}
 .brand-text .name{font-size:14px;font-weight:700}
 .brand-text .sub{font-size:11px;color:var(--text3)}
 .nav{display:flex;flex-direction:column;gap:2px}
+.nav-sec{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;margin-top:4px}
 .nav a{
   display:flex;align-items:center;gap:10px;
   padding:10px 12px;border-radius:8px;
@@ -48,6 +50,8 @@ a{color:var(--blue);text-decoration:none}
 .nav a:hover{background:var(--panel2);color:var(--text)}
 .nav a.on{background:var(--panel2);color:var(--green);font-weight:600}
 .nav a .ic{width:18px;text-align:center;font-size:14px}
+.nav a .dot{width:6px;height:6px;border-radius:50%;margin-left:auto;flex-shrink:0}
+.nav a .dot.on{background:var(--green)}.nav a .dot.off{background:var(--red)}
 .sidebar .foot{margin-top:auto;font-size:11px;color:var(--text3);line-height:1.5}
 
 /* ===== 顶栏 ===== */
@@ -59,6 +63,7 @@ a{color:var(--blue);text-decoration:none}
   padding:0 28px;height:54px;
 }
 .topbar h1{font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px}
+.tb-dots{display:flex;gap:6px}
 .tb-dot{width:8px;height:8px;border-radius:50%;transition:all .3s}
 .tb-dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
 .tb-dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
@@ -71,7 +76,7 @@ a{color:var(--blue);text-decoration:none}
 .page{display:none}.page.on{display:block}
 
 /* ===== 统计卡片 ===== */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
 .card{
   background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
   padding:16px 18px;transition:border-color .2s;
@@ -83,6 +88,24 @@ a{color:var(--blue);text-decoration:none}
 .card.green .v{color:var(--green)} .card.blue .v{color:var(--blue)}
 .card.purple .v{color:var(--purple)} .card.amber .v{color:var(--amber)}
 .card.red .v{color:var(--red)} .card.cyan .v{color:var(--cyan)}
+.card.orange .v{color:var(--orange)}
+
+/* ===== Bot 状态卡 ===== */
+.bot-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+@media(max-width:640px){.bot-cards{grid-template-columns:1fr}}
+.bot-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 20px;display:flex;align-items:center;gap:16px;
+}
+.bot-card .bc-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.bot-card .bc-icon.search{background:var(--bbg)}
+.bot-card .bc-icon.push{background:var(--obg)}
+.bot-card .bc-info{flex:1}
+.bot-card .bc-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.bot-card .bc-st{font-size:12px;display:flex;align-items:center;gap:6px}
+.bot-card .bc-st .sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.bot-card .bc-st .sdot.on{background:var(--green)}.bot-card .bc-st .sdot.off{background:var(--red)}
+.bot-card .bc-btns{display:flex;gap:6px;flex-shrink:0}
 
 /* ===== 两列 ===== */
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
@@ -106,7 +129,7 @@ a{color:var(--blue);text-decoration:none}
 .kw-c{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
 .kw-empty{color:var(--text3);text-align:center;padding:28px 0;font-size:13px}
 
-/* ===== 系统状态面板 ===== */
+/* ===== 系统状态 ===== */
 .srow{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)}
 .srow:last-child{border-bottom:none}
 .srow .l{color:var(--text3);min-width:70px}
@@ -138,15 +161,17 @@ a{color:var(--blue);text-decoration:none}
 @media(max-width:640px){.fr{grid-template-columns:1fr}}
 .fd{display:flex;flex-direction:column;gap:5px}
 .fd>span{font-size:12px;color:var(--text2);font-weight:500}
-.fd input{
+.fd input,.fd select{
   height:36px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);
   padding:0 10px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .2s;
 }
-.fd input:focus{border-color:var(--green)}
+.fd input:focus,.fd select:focus{border-color:var(--green)}
+.fd select{cursor:pointer;appearance:auto}
 .fd .h{font-size:11px;color:var(--text3)}
 .sep{border-top:1px solid var(--border);padding-top:16px;margin-top:4px}
 .sep-label{font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .sep-label::before{content:'';width:3px;height:12px;border-radius:2px;background:var(--green)}
+.sep-label.push::before{background:var(--orange)}
 .sw{display:flex;align-items:center;justify-content:space-between;padding:5px 0}
 .sw>span{font-size:13px;color:var(--text2)}
 .tg{position:relative;width:38px;height:20px;cursor:pointer}
@@ -162,9 +187,11 @@ a{color:var(--blue);text-decoration:none}
   font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);
   display:inline-flex;align-items:center;gap:5px;transition:all .15s;
 }
+.btn-sm{height:28px;padding:0 10px;font-size:11px}
 .btn-g{background:var(--green);color:#fff}.btn-g:hover{background:var(--green2)}
 .btn-s{background:var(--panel2);color:var(--text);border:1px solid var(--border)}.btn-s:hover{background:var(--border)}
 .btn-d{background:var(--rbg);color:var(--red)}.btn-d:hover{background:rgba(239,68,68,.18)}
+.btn-o{background:var(--obg);color:var(--orange)}.btn-o:hover{background:rgba(249,115,22,.18)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* ===== Toast ===== */
@@ -185,11 +212,14 @@ a{color:var(--blue);text-decoration:none}
 <aside class="sidebar">
   <div class="brand">
     <div class="brand-icon">&#x1F986;</div>
-    <div class="brand-text"><div class="name">光鸭检索</div><div class="sub">Telegram Bot 管理</div></div>
+    <div class="brand-text"><div class="name">光鸭 Bot</div><div class="sub">Telegram 管理后台</div></div>
   </div>
   <nav class="nav" id="sideNav">
     <a data-p="dashboard" class="on"><span class="ic">&#x1F4CA;</span>仪表盘</a>
-    <a data-p="config"><span class="ic">&#x2699;&#xFE0F;</span>运行配置</a>
+    <div class="nav-sec">机器人</div>
+    <a data-p="search-config"><span class="ic">&#x1F50D;</span>检索 Bot<span class="dot off" id="navDotSearch"></span></a>
+    <a data-p="push-config"><span class="ic">&#x1F4E4;</span>推送 Bot<span class="dot off" id="navDotPush"></span></a>
+    <div class="nav-sec">系统</div>
     <a data-p="logs"><span class="ic">&#x1F4DD;</span>实时日志</a>
   </nav>
   <div class="foot">配置持久化于<br/>data/config.json<br/>统计持久化于<br/>data/metrics.json</div>
@@ -198,7 +228,13 @@ a{color:var(--blue);text-decoration:none}
 <!-- 主体 -->
 <div>
 <div class="topbar">
-  <h1><span class="tb-dot off" id="tbDot"></span>光鸭 Telegram 检索机器人</h1>
+  <h1>
+    <span class="tb-dots">
+      <span class="tb-dot off" id="tbDotSearch" title="检索 Bot"></span>
+      <span class="tb-dot off" id="tbDotPush" title="推送 Bot"></span>
+    </span>
+    光鸭 Telegram Bot 管理后台
+  </h1>
   <div class="topbar-r"><span class="uptime" id="uptime"></span></div>
 </div>
 
@@ -208,14 +244,47 @@ a{color:var(--blue);text-decoration:none}
 
 <!-- ==================== 仪表盘 ==================== -->
 <div class="page on" id="p-dashboard">
+
+<!-- Bot 状态卡 -->
+<div class="bot-cards">
+  <div class="bot-card">
+    <div class="bc-icon search">&#x1F50D;</div>
+    <div class="bc-info">
+      <div class="bc-name">检索 Bot</div>
+      <div class="bc-st"><span class="sdot off" id="bcDotS"></span><span id="bcStS">已停止</span></div>
+    </div>
+    <div class="bc-btns">
+      <button class="btn btn-sm btn-g" onclick="botAct('start')">启动</button>
+      <button class="btn btn-sm btn-s" onclick="botAct('restart')">重启</button>
+      <button class="btn btn-sm btn-d" onclick="botAct('stop')">停止</button>
+    </div>
+  </div>
+  <div class="bot-card">
+    <div class="bc-icon push">&#x1F4E4;</div>
+    <div class="bc-info">
+      <div class="bc-name">推送 Bot</div>
+      <div class="bc-st"><span class="sdot off" id="bcDotP"></span><span id="bcStP">已停止</span></div>
+    </div>
+    <div class="bc-btns">
+      <button class="btn btn-sm btn-g" onclick="pushAct('start')">启动</button>
+      <button class="btn btn-sm btn-s" onclick="pushAct('restart')">重启</button>
+      <button class="btn btn-sm btn-d" onclick="pushAct('stop')">停止</button>
+      <button class="btn btn-sm btn-o" onclick="pushOnce()">手动推送</button>
+    </div>
+  </div>
+</div>
+
+<!-- 统计卡片 -->
 <div class="cards">
-  <div class="card green"><div class="k">Bot 状态</div><div class="v" id="c_bot">-</div><div class="d" id="c_bot_d"></div></div>
   <div class="card blue"><div class="k">今日搜索</div><div class="v" id="c_ts">0</div><div class="d" id="c_ts_d"></div></div>
+  <div class="card orange"><div class="k">今日推送</div><div class="v" id="c_tp">0</div><div class="d">今日推送成功</div></div>
   <div class="card purple"><div class="k">今日用户</div><div class="v" id="c_tu">0</div><div class="d">今日独立用户</div></div>
   <div class="card cyan"><div class="k">累计搜索</div><div class="v" id="c_as">0</div><div class="d" id="c_as_d"></div></div>
-  <div class="card amber"><div class="k">累计用户</div><div class="v" id="c_au">0</div><div class="d">全部独立用户</div></div>
+  <div class="card amber"><div class="k">累计推送</div><div class="v" id="c_ap">0</div><div class="d" id="c_ap_d"></div></div>
+  <div class="card green"><div class="k">累计用户</div><div class="v" id="c_au">0</div><div class="d">全部独立用户</div></div>
   <div class="card red"><div class="k">累计错误</div><div class="v" id="c_ae">0</div><div class="d" id="c_ae_d"></div></div>
 </div>
+
 <div class="cols">
   <!-- 热门关键词 -->
   <div class="pnl">
@@ -232,14 +301,6 @@ a{color:var(--blue);text-decoration:none}
         <div id="hDetail" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Bot 控制</div>
-        <div class="btn-row">
-          <button class="btn btn-g" onclick="botAct('start')">启动</button>
-          <button class="btn btn-s" onclick="botAct('restart')">重启</button>
-          <button class="btn btn-d" onclick="botAct('stop')">停止</button>
-        </div>
-      </div>
-      <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px">详细统计</div>
         <div id="extraS" style="display:grid;gap:3px;font-size:12px;color:var(--text2)"></div>
       </div>
@@ -248,12 +309,12 @@ a{color:var(--blue);text-decoration:none}
 </div>
 </div>
 
-<!-- ==================== 运行配置 ==================== -->
-<div class="page" id="p-config">
+<!-- ==================== 检索 Bot 配置 ==================== -->
+<div class="page" id="p-search-config">
 <div class="pnl" style="max-width:720px">
-  <div class="pnl-h"><h2>运行配置</h2><span style="font-size:11px;color:var(--text3)">敏感项留空不修改</span></div>
+  <div class="pnl-h"><h2>&#x1F50D; 检索 Bot 配置</h2><span style="font-size:11px;color:var(--text3)">敏感项留空不修改</span></div>
   <div class="pnl-b">
-    <form id="cfgForm" class="fg" autocomplete="off">
+    <form id="searchForm" class="fg" autocomplete="off">
       <div class="sep-label">接口配置</div>
       <div class="fd"><span>Telegram Bot Token</span><input id="telegram_bot_token" name="telegram_bot_token" placeholder="留空不修改"/><div class="h" id="tkH"></div></div>
       <div class="fr">
@@ -294,6 +355,62 @@ a{color:var(--blue);text-decoration:none}
 </div>
 </div>
 
+<!-- ==================== 推送 Bot 配置 ==================== -->
+<div class="page" id="p-push-config">
+<div class="pnl" style="max-width:720px">
+  <div class="pnl-h"><h2>&#x1F4E4; 推送 Bot 配置</h2><span style="font-size:11px;color:var(--text3)">敏感项留空不修改</span></div>
+  <div class="pnl-b">
+    <form id="pushForm" class="fg" autocomplete="off">
+      <div class="sep-label push">Telegram 配置</div>
+      <div class="fd"><span>推送 Bot Token</span><input id="push_bot_token" name="push_bot_token" placeholder="留空不修改"/><div class="h" id="ptkH"></div></div>
+      <div class="fd"><span>目标频道 / 群 ID</span><input id="push_chat_id" name="push_chat_id" placeholder="@频道名 或 -100xxx"/></div>
+      <div class="fd"><span>消息格式 (parse_mode)</span>
+        <select id="push_parse_mode" name="push_parse_mode">
+          <option value="">无 (纯文本)</option>
+          <option value="HTML">HTML</option>
+          <option value="Markdown">Markdown</option>
+          <option value="MarkdownV2">MarkdownV2</option>
+        </select>
+      </div>
+
+      <div class="sep"><div class="sep-label push">推送 API 配置</div></div>
+      <div class="fr">
+        <div class="fd"><span>推送 API 地址</span><input id="push_api_base" name="push_api_base" placeholder="http://host.docker.internal:8000"/></div>
+        <div class="fd"><span>推送 API Key</span><input id="push_api_key" name="push_api_key" placeholder="留空不修改"/><div class="h" id="pakH"></div></div>
+      </div>
+
+      <div class="sep"><div class="sep-label push">轮询参数</div></div>
+      <div class="fr">
+        <div class="fd"><span>轮询间隔(秒)</span><input id="push_poll_interval" name="push_poll_interval" type="number" min="5" max="3600"/><div class="h">默认 30 秒</div></div>
+        <div class="fd"><span>每批数量</span><input id="push_batch_size" name="push_batch_size" type="number" min="1" max="100"/><div class="h">默认 5</div></div>
+      </div>
+      <div class="fr">
+        <div class="fd"><span>发送间隔(秒)</span><input id="push_send_interval" name="push_send_interval" type="number" min="0" max="60" step="0.5"/><div class="h">每条消息之间的间隔，默认 1.0</div></div>
+        <div class="fd"><span>过期重试(分钟)</span><input id="push_lease_stale_minutes" name="push_lease_stale_minutes" type="number" min="5" max="1440"/><div class="h">领取后超时重试时间，默认 30</div></div>
+      </div>
+
+      <div class="sep"><div class="sep-label push">开关</div></div>
+      <div class="sw"><span>启用推送自动轮询</span><label class="tg"><input type="checkbox" id="push_enabled" name="push_enabled"/><span class="sl"></span></label></div>
+
+      <div class="btn-row" style="margin-top:8px">
+        <button type="submit" class="btn btn-g">保存配置</button>
+        <button type="button" class="btn btn-s" onclick="loadCfg()">重新加载</button>
+      </div>
+    </form>
+
+    <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">推送 Bot 控制</div>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-g" onclick="pushAct('start')">启动</button>
+        <button class="btn btn-s" onclick="pushAct('restart')">重启</button>
+        <button class="btn btn-d" onclick="pushAct('stop')">停止</button>
+        <button class="btn btn-o" onclick="pushOnce()">手动推送一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
 <!-- ==================== 实时日志 ==================== -->
 <div class="page" id="p-logs">
 <div class="pnl">
@@ -314,7 +431,11 @@ a{color:var(--blue);text-decoration:none}
 
 <script>
 const $=s=>document.getElementById(s);
-const FIELDS=["guangya_api_base","page_size","max_results","status","request_timeout_seconds","hot_window_hours","bot_enabled","proxy_enabled","web_username"];
+const SEARCH_FIELDS=["guangya_api_base","page_size","max_results","status","request_timeout_seconds","hot_window_hours","bot_enabled","proxy_enabled","web_username"];
+const PUSH_FIELDS=["push_chat_id","push_api_base","push_poll_interval","push_batch_size","push_send_interval","push_lease_stale_minutes","push_enabled","push_parse_mode"];
+const NUM_FIELDS=["page_size","max_results","request_timeout_seconds","hot_window_hours","push_poll_interval","push_batch_size","push_lease_stale_minutes"];
+const FLOAT_FIELDS=["push_send_interval"];
+const SECRET_FIELDS=["telegram_bot_token","guangya_api_key","proxy_url","web_password","push_bot_token","push_api_key"];
 let lastEid=0,logT=null,statsT=null,upT=null,upBase=0,upOn=false;
 
 /* ===== toast ===== */
@@ -333,20 +454,30 @@ function stopUp(){upOn=false;clearInterval(upT);$("uptime").textContent=""}
 /* ===== esc ===== */
 function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
 
+/* ===== update bot dots ===== */
+function updateDots(searchOn, pushOn){
+  $("tbDotSearch").className="tb-dot "+(searchOn?"on":"off");
+  $("tbDotPush").className="tb-dot "+(pushOn?"on":"off");
+  $("navDotSearch").className="dot "+(searchOn?"on":"off");
+  $("navDotPush").className="dot "+(pushOn?"on":"off");
+  $("bcDotS").className="sdot "+(searchOn?"on":"off");
+  $("bcStS").textContent=searchOn?"运行中":"已停止";
+  $("bcDotP").className="sdot "+(pushOn?"on":"off");
+  $("bcStP").textContent=pushOn?"运行中":"已停止";
+}
+
 /* ===== stats ===== */
 async function loadStats(){
   try{
-    const d=await api("/api/stats"),r=d.bot_running;
-    /* 顶栏 */
-    $("tbDot").className="tb-dot "+(r?"on":"off");
+    const d=await api("/api/stats"),sr=d.bot_running,pr=d.push_bot_running;
+    updateDots(sr,pr);
+    if(sr&&d.uptime_seconds>0){startUp(d.uptime_seconds)}else{stopUp()}
     /* 卡片 */
-    $("c_bot").textContent=r?"运行中":"已停止";
-    document.querySelector(".card.green").className="card "+(r?"green":"red");
-    if(r&&d.uptime_seconds>0){startUp(d.uptime_seconds);const h=Math.floor(d.uptime_seconds/3600),m=Math.floor(d.uptime_seconds%3600/60);$("c_bot_d").textContent=`已运行 ${h}h ${m}m`}
-    else{stopUp();$("c_bot_d").textContent=""}
     $("c_ts").textContent=d.today.searches;$("c_ts_d").textContent=d.today.date;
+    $("c_tp").textContent=d.today.pushes||0;
     $("c_tu").textContent=d.today.users;
     $("c_as").textContent=d.totals.searches;$("c_as_d").textContent=`详情 ${d.totals.details} · 翻页 ${d.totals.pages}`;
+    $("c_ap").textContent=d.totals.pushes||0;$("c_ap_d").textContent=`失败 ${d.totals.push_errors||0} · 批次 ${d.totals.push_batches||0}`;
     $("c_au").textContent=d.totals.users;
     $("c_ae").textContent=d.totals.errors;$("c_ae_d").textContent=`API 调用 ${d.totals.api_calls}`;
     /* 热门关键词 */
@@ -376,26 +507,47 @@ async function loadHealth(){
 async function loadCfg(){
   try{
     const d=await api("/api/config");
-    FIELDS.forEach(id=>{const el=$(id);if(!el)return;el.type==="checkbox"?el.checked=!!d[id]:el.value=d[id]??""});
-    $("telegram_bot_token").value="";$("guangya_api_key").value="";$("proxy_url").value="";$("web_password").value="";
+    // 检索 Bot 字段
+    SEARCH_FIELDS.forEach(id=>{const el=$(id);if(!el)return;el.type==="checkbox"?el.checked=!!d[id]:el.value=d[id]??""});
+    // 推送 Bot 字段
+    PUSH_FIELDS.forEach(id=>{const el=$(id);if(!el)return;if(el.type==="checkbox")el.checked=!!d[id];else if(el.tagName==="SELECT")el.value=d[id]||"";else el.value=d[id]??""});
+    // 清空敏感字段
+    SECRET_FIELDS.forEach(id=>{const el=$(id);if(el)el.value=""});
+    // 提示
     $("tkH").textContent=d.telegram_bot_token_set?"已配置 Token":"未配置";
     $("akH").textContent=d.guangya_api_key_set?"已配置 Key":"未配置";
     $("pxH").textContent=d.proxy_url_set?"已配置代理":"未配置";
+    $("ptkH").textContent=d.push_bot_token_set?"已配置 Token":"未配置";
+    $("pakH").textContent=d.push_api_key_set?"已配置 Key":"未配置";
   }catch(e){toast("加载配置失败: "+e.message,"err")}
 }
-$("cfgForm").addEventListener("submit",async e=>{
-  e.preventDefault();const body={};
-  for(const el of e.currentTarget.elements){if(!el.name)continue;
-    if(el.type==="checkbox")body[el.name]=el.checked;
-    else if(["page_size","max_results","request_timeout_seconds","hot_window_hours"].includes(el.name))body[el.name]=Number(el.value);
-    else if(["telegram_bot_token","guangya_api_key","proxy_url","web_password"].includes(el.name)){if(el.value!=="")body[el.name]=el.value}
-    else body[el.name]=el.value}
+
+function buildBody(form){
+  const body={};
+  for(const el of form.elements){
+    if(!el.name)continue;
+    if(el.type==="checkbox") body[el.name]=el.checked;
+    else if(NUM_FIELDS.includes(el.name)) body[el.name]=Number(el.value);
+    else if(FLOAT_FIELDS.includes(el.name)) body[el.name]=parseFloat(el.value);
+    else if(SECRET_FIELDS.includes(el.name)){if(el.value!=="")body[el.name]=el.value}
+    else body[el.name]=el.value;
+  }
+  return body;
+}
+
+async function saveCfg(form){
+  const body=buildBody(form);
   try{await api("/api/config",{method:"PUT",body:JSON.stringify(body)});toast("配置已保存","ok");loadCfg();loadStats()}
   catch(e){toast("保存失败: "+e.message,"err")}
-});
+}
 
-/* ===== bot action ===== */
+$("searchForm").addEventListener("submit",e=>{e.preventDefault();saveCfg(e.currentTarget)});
+$("pushForm").addEventListener("submit",e=>{e.preventDefault();saveCfg(e.currentTarget)});
+
+/* ===== bot actions ===== */
 async function botAct(a){try{const d=await api(`/api/bot/${a}`,{method:"POST"});toast(d.message,"ok");setTimeout(()=>{loadStats();loadHealth()},800)}catch(e){toast("操作失败: "+e.message,"err")}}
+async function pushAct(a){try{const d=await api(`/api/push-bot/${a}`,{method:"POST"});toast(d.message,"ok");setTimeout(loadStats,800)}catch(e){toast("操作失败: "+e.message,"err")}}
+async function pushOnce(){try{const d=await api("/api/push-bot/push-once",{method:"POST"});toast(d.message,"ok");setTimeout(loadStats,800)}catch(e){toast("手动推送失败: "+e.message,"err")}}
 
 /* ===== logs ===== */
 function fmtTs(iso){try{return new Date(iso).toLocaleTimeString("zh-CN",{hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"})}catch{return iso}}

@@ -36,6 +36,17 @@ class RuntimeConfig:
     hot_window_hours: int = 48
     web_username: str = "admin"
     web_password: str = "admin123"
+    # ---- 推送 Bot ----
+    push_bot_token: str = ""
+    push_chat_id: str = ""
+    push_enabled: bool = False
+    push_api_base: str = ""
+    push_api_key: str = ""
+    push_poll_interval: int = 30
+    push_batch_size: int = 5
+    push_send_interval: float = 1.0
+    push_lease_stale_minutes: int = 30
+    push_parse_mode: str = ""
 
     def normalized(self) -> "RuntimeConfig":
         self.guangya_api_base = self.guangya_api_base.rstrip("/")
@@ -45,6 +56,14 @@ class RuntimeConfig:
         self.request_timeout_seconds = max(3, int(self.request_timeout_seconds or 20))
         self.status = (self.status or "").strip()
         self.proxy_url = (self.proxy_url or "").strip()
+        # 推送 Bot 边界校验
+        self.push_poll_interval = max(5, int(self.push_poll_interval or 30))
+        self.push_batch_size = max(1, min(int(self.push_batch_size or 5), 100))
+        self.push_send_interval = max(0.0, float(self.push_send_interval or 1.0))
+        self.push_lease_stale_minutes = max(5, int(self.push_lease_stale_minutes or 30))
+        self.push_api_base = (self.push_api_base or "").rstrip("/")
+        self.push_parse_mode = (self.push_parse_mode or "").strip()
+        self.push_chat_id = (self.push_chat_id or "").strip()
         if self.proxy_url.startswith("socks://"):
             self.proxy_url = "socks5://" + self.proxy_url.removeprefix("socks://")
         return self
@@ -54,10 +73,11 @@ class RuntimeConfig:
         data["telegram_bot_token_set"] = bool(self.telegram_bot_token)
         data["guangya_api_key_set"] = bool(self.guangya_api_key)
         data["proxy_url_set"] = bool(self.proxy_url)
-        data.pop("telegram_bot_token", None)
-        data.pop("guangya_api_key", None)
-        data.pop("proxy_url", None)
-        data.pop("web_password", None)
+        data["push_bot_token_set"] = bool(self.push_bot_token)
+        data["push_api_key_set"] = bool(self.push_api_key)
+        for key in ("telegram_bot_token", "guangya_api_key", "proxy_url",
+                     "web_password", "push_bot_token", "push_api_key"):
+            data.pop(key, None)
         return data
 
 
@@ -82,6 +102,16 @@ class ConfigStore:
             proxy_url=os.getenv("PROXY_URL", ""),
             web_username=os.getenv("WEB_USERNAME", "admin"),
             web_password=os.getenv("WEB_PASSWORD", "admin123"),
+            push_bot_token=os.getenv("PUSH_BOT_TOKEN", ""),
+            push_chat_id=os.getenv("PUSH_CHAT_ID", ""),
+            push_enabled=_bool_env("PUSH_ENABLED", False),
+            push_api_base=os.getenv("PUSH_API_BASE", ""),
+            push_api_key=os.getenv("PUSH_API_KEY", ""),
+            push_poll_interval=_int_env("PUSH_POLL_INTERVAL", 30),
+            push_batch_size=_int_env("PUSH_BATCH_SIZE", 5),
+            push_send_interval=float(os.getenv("PUSH_SEND_INTERVAL", "1.0")),
+            push_lease_stale_minutes=_int_env("PUSH_LEASE_STALE_MINUTES", 30),
+            push_parse_mode=os.getenv("PUSH_PARSE_MODE", ""),
         ).normalized()
 
     def _load(self) -> RuntimeConfig:

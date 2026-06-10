@@ -66,10 +66,14 @@ class Metrics:
             "pages": 0,
             "errors": 0,
             "api_calls": 0,
+            "pushes": 0,
+            "push_errors": 0,
+            "push_batches": 0,
         }
         self.all_users: set[int] = set()
         self.today_date: str = _today_key()
         self.today_searches: int = 0
+        self.today_pushes: int = 0
         self.today_users: set[int] = set()
         self.keywords: Counter[str] = Counter()
         self.resource_clicks: dict[str, list[float]] = {}  # resource_id -> [timestamp, ...]
@@ -103,6 +107,7 @@ class Metrics:
         if today != self.today_date:
             self.today_date = today
             self.today_searches = 0
+            self.today_pushes = 0
             self.today_users = set()
 
     # ---------- record events ----------
@@ -204,6 +209,26 @@ class Metrics:
             "at": _now().isoformat(),
         }
 
+    # ---------- push metrics ----------
+    def record_push(self, resource_id: int, resource_name: str) -> None:
+        self.totals["pushes"] += 1
+        self._roll_day()
+        self.today_pushes += 1
+        label = resource_name or f"#{resource_id}"
+        self.add_event("success", "推送", f"推送成功「{label}」")
+        self._save_soon()
+
+    def record_push_error(self, resource_id: int, resource_name: str, error: str) -> None:
+        self.totals["push_errors"] += 1
+        label = resource_name or f"#{resource_id}" if resource_id else "未知"
+        self.add_event("error", "推送", f"推送失败「{label}」: {error[:200]}")
+        self._save_soon()
+
+    def record_push_batch(self, leased: int, pushed: int) -> None:
+        self.totals["push_batches"] += 1
+        if leased > 0:
+            self.add_event("info", "推送", f"批次完成：领取 {leased} 条，成功 {pushed} 条")
+
     def add_event(self, level: str, action: str, text: str) -> None:
         if level not in LOG_LEVELS:
             level = "info"
@@ -258,16 +283,18 @@ class Metrics:
             out = out[-limit:]
         return out
 
-    def snapshot(self, bot_running: bool) -> dict[str, Any]:
+    def snapshot(self, bot_running: bool, push_bot_running: bool = False) -> dict[str, Any]:
         self._roll_day()
         return {
             "bot_running": bot_running,
+            "push_bot_running": push_bot_running,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "uptime_seconds": self.uptime_seconds(),
             "totals": {**self.totals, "users": len(self.all_users)},
             "today": {
                 "date": self.today_date,
                 "searches": self.today_searches,
+                "pushes": self.today_pushes,
                 "users": len(self.today_users),
             },
             "keywords": [
@@ -291,6 +318,7 @@ class Metrics:
             "all_users": list(self.all_users),
             "today_date": self.today_date,
             "today_searches": self.today_searches,
+            "today_pushes": self.today_pushes,
             "today_users": list(self.today_users),
             "keywords": dict(self.keywords),
             "resource_clicks": self.resource_clicks,
@@ -328,6 +356,7 @@ class Metrics:
         if raw.get("today_date") == _today_key():
             self.today_date = raw["today_date"]
             self.today_searches = int(raw.get("today_searches", 0) or 0)
+            self.today_pushes = int(raw.get("today_pushes", 0) or 0)
             self.today_users = set(int(u) for u in raw.get("today_users", []) if isinstance(u, int))
 
 
