@@ -44,6 +44,7 @@ class SearchPage:
 @dataclass
 class SearchSession:
     keyword: str
+    total: int = 0
     pages: dict[int, SearchPage] = field(default_factory=dict)
     current_page: int = 1
     exhausted: bool = False
@@ -205,10 +206,15 @@ class TelegramSearchBot:
 
     def _page_list_text(self, session: SearchSession, page: SearchPage) -> str:
         start_index = page.shown_count - len(page.items) + 1
+        kw = html.escape(session.keyword)
+        if session.total > 0:
+            header = f"关键词 \"{kw}\" │ 共 {session.total} 条结果"
+        else:
+            header = f"关键词 \"{kw}\""
         lines = [
             "🔍 <b>搜索结果</b>",
             "",
-            f"关键词「{html.escape(session.keyword)}」",
+            f"<b>{header}</b>",
             "",
         ]
         for offset, item in enumerate(page.items):
@@ -219,12 +225,6 @@ class TelegramSearchBot:
                 lines.append(f'{index}. <a href="{link}">{name}</a>')
             else:
                 lines.append(f"{index}. {name}")
-
-        footer = f"第 {session.current_page} 页 · 已显示 {page.shown_count} 条"
-        if page.has_more:
-            footer += " · 还有更多"
-        lines.append("")
-        lines.append(f"<i>{footer}</i>")
         return "\n".join(lines)
 
     def _page_nav_row(self, session: SearchSession) -> list[InlineKeyboardButton]:
@@ -372,7 +372,8 @@ class TelegramSearchBot:
         cursor: str | None,
         page_no: int,
         already_shown: int,
-    ) -> SearchPage:
+    ) -> tuple[SearchPage, int]:
+        """返回 (SearchPage, total)，total 仅首页有值。"""
         limit = self._page_limit(already_shown)
         if limit <= 0:
             raise RuntimeError("已达到最大展示数量")
@@ -381,16 +382,19 @@ class TelegramSearchBot:
         shown_count = already_shown + len(items)
         max_results = self._config().max_results
         has_more = bool(result.get("has_more")) and (max_results == 0 or shown_count < max_results)
-        return SearchPage(
+        total = int(result.get("total") or 0)
+        page = SearchPage(
             items=items,
             cursor=result.get("next_cursor"),
             has_more=has_more,
             shown_count=shown_count,
         )
+        return page, total
 
     async def _create_session(self, chat_id: int, keyword: str, bot) -> SearchSession:
         session = SearchSession(keyword=keyword)
-        page = await self._fetch_page(keyword, bot, cursor=None, page_no=1, already_shown=0)
+        page, total = await self._fetch_page(keyword, bot, cursor=None, page_no=1, already_shown=0)
+        session.total = total
         session.pages[1] = page
         session.current_page = 1
         session.exhausted = not page.has_more
@@ -411,7 +415,7 @@ class TelegramSearchBot:
                 session.exhausted = True
                 break
             page_no = highest_loaded + 1
-            next_page = await self._fetch_page(
+            next_page, _ = await self._fetch_page(
                 session.keyword,
                 bot,
                 cursor=prev.cursor,
