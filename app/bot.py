@@ -7,7 +7,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Update, User
+from telegram import (
+    BotCommand,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    MenuButtonCommands,
+    ReplyKeyboardMarkup,
+    Update,
+    User,
+)
 from telegram.error import BadRequest
 from telegram.request import HTTPXRequest
 from telegram.ext import (
@@ -109,6 +118,19 @@ class TelegramSearchBot:
             kwargs["proxy"] = config.proxy_url
         return HTTPXRequest(**kwargs)
 
+    async def _set_bot_menu(self, application: Application) -> None:
+        commands = [
+            BotCommand("start", "打开菜单"),
+            BotCommand("gy", "搜索资源"),
+            BotCommand("hot", "热门资源"),
+            BotCommand("status", "查看状态"),
+        ]
+        try:
+            await application.bot.set_my_commands(commands)
+            await application.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+        except Exception:
+            logger.exception("设置 Telegram 命令菜单失败")
+
     async def _run(self, token: str) -> None:
         config = self._config()
         request = self._telegram_request(config)
@@ -142,6 +164,7 @@ class TelegramSearchBot:
             except Exception:
                 logger.exception("获取 Bot 用户名失败，资源详情链接将不可用")
                 self._bot_username = None
+            await self._set_bot_menu(application)
             if application.updater is None:
                 raise RuntimeError("python-telegram-bot updater 不可用")
             await application.updater.start_polling(
