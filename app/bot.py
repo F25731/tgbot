@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, User
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Update, User
 from telegram.error import BadRequest
 from telegram.request import HTTPXRequest
 from telegram.ext import (
@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 CALLBACK_PAGE_PREFIX = "gy:p:"
 CALLBACK_JUMP_PREFIX = "gy:j:"
 DETAIL_START_PREFIX = "d_"
+MENU_SEARCH_LABEL = "搜索资源"
+MENU_HOT_LABEL = "热门资源"
+MENU_HELP_LABEL = "帮助"
 PAGE_WINDOW = 4
 PAGE_JUMP = 4
 MAX_LIST_TITLE_LENGTH = 76
@@ -204,6 +207,18 @@ class TelegramSearchBot:
         if not self._bot_username or resource_id is None:
             return None
         return f"https://t.me/{self._bot_username}?start={DETAIL_START_PREFIX}{resource_id}"
+
+    def _menu_markup(self) -> ReplyKeyboardMarkup:
+        return ReplyKeyboardMarkup(
+            [
+                [KeyboardButton(MENU_SEARCH_LABEL), KeyboardButton(MENU_HOT_LABEL)],
+                [KeyboardButton(MENU_HELP_LABEL)],
+            ],
+            resize_keyboard=True,
+            is_persistent=True,
+            one_time_keyboard=False,
+            input_field_placeholder="输入关键词搜索资源",
+        )
 
     def _page_list_text(self, session: SearchSession, page: SearchPage) -> str:
         start_index = page.shown_count - len(page.items) + 1
@@ -442,7 +457,7 @@ class TelegramSearchBot:
         window = self._config().hot_window_hours
         top = self.metrics.top_resources(window_hours=window, limit=20)
         if not top:
-            await message.reply_text(f"最近 {window} 小时内暂无热门资源")
+            await message.reply_text(f"最近 {window} 小时内暂无热门资源", reply_markup=self._menu_markup())
             return
         lines = [
             f"🔥 <b>热门资源 TOP {len(top)}</b>",
@@ -461,6 +476,7 @@ class TelegramSearchBot:
             "\n".join(lines),
             parse_mode="HTML",
             disable_web_page_preview=True,
+            reply_markup=self._menu_markup(),
         )
 
     async def _start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -478,7 +494,10 @@ class TelegramSearchBot:
                 return
             await self._send_detail(chat.id, resource_id, context.bot, message.from_user)
             return
-        await message.reply_text("发送关键词即可搜索资源，也可以使用 /gy 关键词")
+        await message.reply_text(
+            "发送关键词即可搜索资源，也可以使用 /gy 关键词",
+            reply_markup=self._menu_markup(),
+        )
 
     async def _status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not update.effective_message:
@@ -513,6 +532,21 @@ class TelegramSearchBot:
         if not message or not chat:
             return
         keyword = (message.text or "").strip()
+        if keyword == MENU_HOT_LABEL:
+            await self._hot_command(update, context)
+            return
+        if keyword == MENU_SEARCH_LABEL:
+            await message.reply_text(
+                "直接发送关键词即可搜索资源，或者输入 /gy 关键词",
+                reply_markup=self._menu_markup(),
+            )
+            return
+        if keyword == MENU_HELP_LABEL:
+            await message.reply_text(
+                "可用菜单：搜索资源、热门资源、帮助",
+                reply_markup=self._menu_markup(),
+            )
+            return
         if keyword:
             await self._safe_search(chat.id, keyword, context.bot, message)
 
