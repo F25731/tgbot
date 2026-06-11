@@ -128,6 +128,8 @@ class TelegramPushBot:
 
     @staticmethod
     def _proxy_url(cfg) -> str:
+        if cfg.push_proxy_enabled and cfg.push_proxy_url:
+            return cfg.push_proxy_url
         if cfg.proxy_enabled and cfg.proxy_url:
             return cfg.proxy_url
         return ""

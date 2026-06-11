@@ -61,6 +61,8 @@ class ConfigPayload(BaseModel):
     push_enabled: bool | None = Field(default=None)
     push_api_base: str | None = Field(default=None)
     push_api_key: str | None = Field(default=None)
+    push_proxy_enabled: bool | None = Field(default=None)
+    push_proxy_url: str | None = Field(default=None, max_length=512)
     push_poll_interval: int | None = Field(default=None, ge=5, le=3600)
     push_batch_size: int | None = Field(default=None, ge=1, le=100)
     push_send_interval: float | None = Field(default=None, ge=0, le=60)
@@ -120,6 +122,8 @@ async def update_config(payload: ConfigPayload, _: str = Depends(require_admin))
         or old_config.push_chat_id != config.push_chat_id
         or old_config.proxy_enabled != config.proxy_enabled
         or old_config.proxy_url != config.proxy_url
+        or old_config.push_proxy_enabled != config.push_proxy_enabled
+        or old_config.push_proxy_url != config.push_proxy_url
     )
     if push_should_restart and push_bot.running():
         await push_bot.restart()

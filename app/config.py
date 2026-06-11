@@ -42,6 +42,8 @@ class RuntimeConfig:
     push_enabled: bool = False
     push_api_base: str = ""
     push_api_key: str = ""
+    push_proxy_enabled: bool = False
+    push_proxy_url: str = ""
     push_poll_interval: int = 30
     push_batch_size: int = 5
     push_send_interval: float = 1.0
@@ -64,8 +66,11 @@ class RuntimeConfig:
         self.push_api_base = (self.push_api_base or "").rstrip("/")
         self.push_parse_mode = (self.push_parse_mode or "").strip()
         self.push_chat_id = (self.push_chat_id or "").strip()
+        self.push_proxy_url = (self.push_proxy_url or "").strip()
         if self.proxy_url.startswith("socks://"):
             self.proxy_url = "socks5://" + self.proxy_url.removeprefix("socks://")
+        if self.push_proxy_url.startswith("socks://"):
+            self.push_proxy_url = "socks5://" + self.push_proxy_url.removeprefix("socks://")
         return self
 
     def public_dict(self) -> dict[str, Any]:
@@ -75,8 +80,9 @@ class RuntimeConfig:
         data["proxy_url_set"] = bool(self.proxy_url)
         data["push_bot_token_set"] = bool(self.push_bot_token)
         data["push_api_key_set"] = bool(self.push_api_key)
+        data["push_proxy_url_set"] = bool(self.push_proxy_url)
         for key in ("telegram_bot_token", "guangya_api_key", "proxy_url",
-                     "web_password", "push_bot_token", "push_api_key"):
+                     "web_password", "push_bot_token", "push_api_key", "push_proxy_url"):
             data.pop(key, None)
         return data
 
@@ -107,6 +113,8 @@ class ConfigStore:
             push_enabled=_bool_env("PUSH_ENABLED", False),
             push_api_base=os.getenv("PUSH_API_BASE", ""),
             push_api_key=os.getenv("PUSH_API_KEY", ""),
+            push_proxy_enabled=_bool_env("PUSH_PROXY_ENABLED", False),
+            push_proxy_url=os.getenv("PUSH_PROXY_URL", ""),
             push_poll_interval=_int_env("PUSH_POLL_INTERVAL", 30),
             push_batch_size=_int_env("PUSH_BATCH_SIZE", 5),
             push_send_interval=float(os.getenv("PUSH_SEND_INTERVAL", "1.0")),

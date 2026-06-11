@@ -373,6 +373,10 @@ a{color:var(--blue);text-decoration:none}
         </select>
       </div>
 
+      <div class="sep"><div class="sep-label push">推送代理</div></div>
+      <div class="sw"><span>启用推送代理</span><label class="tg"><input type="checkbox" id="push_proxy_enabled" name="push_proxy_enabled"/><span class="sl"></span></label></div>
+      <div class="fd"><span>推送代理地址</span><input id="push_proxy_url" name="push_proxy_url" placeholder="留空不修改，支持 http:// / socks5://"/><div class="h" id="ppxH"></div></div>
+
       <div class="sep"><div class="sep-label push">推送 API 配置</div></div>
       <div class="fr">
         <div class="fd"><span>推送 API 地址</span><input id="push_api_base" name="push_api_base" placeholder="http://host.docker.internal:8000"/></div>
@@ -432,10 +436,10 @@ a{color:var(--blue);text-decoration:none}
 <script>
 const $=s=>document.getElementById(s);
 const SEARCH_FIELDS=["guangya_api_base","page_size","max_results","status","request_timeout_seconds","hot_window_hours","bot_enabled","proxy_enabled","web_username"];
-const PUSH_FIELDS=["push_chat_id","push_api_base","push_poll_interval","push_batch_size","push_send_interval","push_lease_stale_minutes","push_enabled","push_parse_mode"];
+const PUSH_FIELDS=["push_chat_id","push_api_base","push_poll_interval","push_batch_size","push_send_interval","push_lease_stale_minutes","push_enabled","push_parse_mode","push_proxy_enabled"];
 const NUM_FIELDS=["page_size","max_results","request_timeout_seconds","hot_window_hours","push_poll_interval","push_batch_size","push_lease_stale_minutes"];
 const FLOAT_FIELDS=["push_send_interval"];
-const SECRET_FIELDS=["telegram_bot_token","guangya_api_key","proxy_url","web_password","push_bot_token","push_api_key"];
+const SECRET_FIELDS=["telegram_bot_token","guangya_api_key","proxy_url","web_password","push_bot_token","push_api_key","push_proxy_url"];
 let lastEid=0,logT=null,statsT=null,upT=null,upBase=0,upOn=false;
 
 /* ===== toast ===== */
@@ -519,6 +523,7 @@ async function loadCfg(){
     $("pxH").textContent=d.proxy_url_set?"已配置代理":"未配置";
     $("ptkH").textContent=d.push_bot_token_set?"已配置 Token":"未配置";
     $("pakH").textContent=d.push_api_key_set?"已配置 Key":"未配置";
+    $("ppxH").textContent=d.push_proxy_url_set?"已配置代理":"未配置";
   }catch(e){toast("加载配置失败: "+e.message,"err")}
 }
 
